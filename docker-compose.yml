@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./pb_data:/pb_data
+
+    ports:
+      - '127.0.0.1:8090:8090'
+    environment:
+      META_ID: "${META_ID}"
+    env_file: .env
+    entrypoint: go run . serve --http=0.0.0.0:8090
