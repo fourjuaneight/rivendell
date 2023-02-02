@@ -1,0 +1,20 @@
+{
+  "name": "Hugo Codespace",
+  "dockerFile": "Dockerfile",
+  "containerUser": "node",
+  "remoteUser": "node",
+  "appPort": 1313,
+  "extensions": [
+    "budparr.language-hugo-vscode",
+    "fivethree.vscode-hugo-snippets"
+  ],
+  "postCreateCommand": "npm install",
+  "settings": {
+    "terminal.integrated.automationShell.linux" : "/usr/bin/zsh",
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "workbench.colorCustomizations": {
+      "statusBar.background": "#ff4088",
+      "statusBar.foreground": "#ffffff"
+    }
+  }
+}
