@@ -27,7 +27,7 @@ func main() {
 
 			if existing == nil {
 				if err := app.Dao().SaveCollection(collection); err != nil {
-					log.Fatal(err)
+					log.Fatal("[OnBeforeServe]: %w", err)
 				}
 			}
 		}
@@ -40,6 +40,6 @@ func main() {
 	})
 
 	if err := app.Start(); err != nil {
-		log.Fatal(err)
+		log.Fatal("[Start]: %w", err)
 	}
 }
