@@ -21,6 +21,7 @@ func main() {
 		metaCollection(),
 	}
 
+	// manually declare schemas
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		for _, collection := range collections {
 			existing, _ := app.Dao().FindCollectionByNameOrId(collection.Name)
@@ -35,10 +36,12 @@ func main() {
 		return nil
 	})
 
+	// setup migrations
 	migratecmd.MustRegister(app, app.RootCmd, &migratecmd.Options{
 		Automigrate: true,
 	})
 
+	// set default values
 	app.OnRecordBeforeCreateRequest().Add(func(e *core.RecordCreateEvent) error {
 		record := e.Record
 		collection := record.Collection().Name
