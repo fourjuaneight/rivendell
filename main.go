@@ -39,6 +39,18 @@ func main() {
 		Automigrate: true,
 	})
 
+	app.OnModelBeforeCreate().Add(func(e *core.ModelEvent) error {
+		record := e.Model.(*models.Record)
+		collection := record.Collection().Name
+
+		if collection == "bookmarks" || collection == "feeds" {
+			record.Set("dead", false)
+			record.Set("shared", false)
+		}
+
+		return nil
+	})
+
 	if err := app.Start(); err != nil {
 		log.Fatal("[Start]: %w", err)
 	}
