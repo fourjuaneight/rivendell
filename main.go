@@ -39,8 +39,8 @@ func main() {
 		Automigrate: true,
 	})
 
-	app.OnModelBeforeCreate().Add(func(e *core.ModelEvent) error {
-		record := e.Model.(*models.Record)
+	app.OnRecordBeforeCreateRequest().Add(func(e *core.RecordCreateEvent) error {
+		record := e.Record
 		collection := record.Collection().Name
 
 		if collection == "bookmarks" || collection == "feeds" {
