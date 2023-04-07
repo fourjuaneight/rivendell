@@ -76,20 +76,24 @@ func bookmarksCollection() *models.Collection {
 			},
 			&schema.SchemaField{
 				Name:     "type",
-				Type:     schema.FieldTypeText,
+				Type:     schema.FieldTypeSelect,
 				Required: true,
 				Unique:   false,
+				Options: &schema.SelectOptions{
+					MaxSelect: 1,
+					Values:    []string{"article", "comics", "podcasts", "videos"},
+				},
 			},
 			&schema.SchemaField{
 				Name:     "dead",
 				Type:     schema.FieldTypeBool,
-				Required: true,
+				Required: false,
 				Unique:   false,
 			},
 			&schema.SchemaField{
 				Name:     "shared",
 				Type:     schema.FieldTypeBool,
-				Required: true,
+				Required: false,
 				Unique:   false,
 			},
 			&schema.SchemaField{
@@ -147,17 +151,21 @@ func feedsCollection() *models.Collection {
 				Type:     schema.FieldTypeText,
 				Required: true,
 				Unique:   false,
+				Options: &schema.SelectOptions{
+					MaxSelect: 1,
+					Values:    []string{"podcasts", "websites", "youtube"},
+				},
 			},
 			&schema.SchemaField{
 				Name:     "dead",
 				Type:     schema.FieldTypeBool,
-				Required: true,
+				Required: false,
 				Unique:   false,
 			},
 			&schema.SchemaField{
 				Name:     "shared",
 				Type:     schema.FieldTypeBool,
-				Required: true,
+				Required: false,
 				Unique:   false,
 			},
 			&schema.SchemaField{
@@ -233,6 +241,10 @@ func mediaCollection() *models.Collection {
 				Type:     schema.FieldTypeText,
 				Required: true,
 				Unique:   false,
+				Options: &schema.SelectOptions{
+					MaxSelect: 1,
+					Values:    []string{"books", "games", "movies", "shows"},
+				},
 			},
 			&schema.SchemaField{
 				Name:     "shared",
