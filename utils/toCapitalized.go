@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"golang.org/x/text/cases"
@@ -6,6 +6,6 @@ import (
 )
 
 // Turns first letter of a string to uppercase, capitalizing the string
-func toCapitalized(str string) string {
+func ToCapitalized(str string) string {
 	return cases.Title(language.English, cases.Compact).String(str)
 }

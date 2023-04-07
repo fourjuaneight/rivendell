@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"log"
@@ -6,11 +6,11 @@ import (
 )
 
 // Delete list of files.
-func deleteFiles(files []string) {
+func DeleteFiles(files []string) {
 	for _, file := range files {
 		err := os.Remove(file)
 		if err != nil {
-			log.Fatal("[deleteFiles]: %w", err)
+			log.Fatal("[DeleteFiles]: %w", err)
 		}
 	}
 }

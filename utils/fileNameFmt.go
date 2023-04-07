@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"regexp"
@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 )
 
-func fileNameFmt(name string) string {
+func FileNameFmt(name string) string {
 	cleanName := emojiRange.ReplaceAllString(name, "")
 	cleanName = strings.Trim(cleanName, " \t\n\r\v\f")
 	cleanName = strings.TrimSuffix(cleanName, ".")
