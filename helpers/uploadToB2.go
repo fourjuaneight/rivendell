@@ -73,11 +73,11 @@ type B2UploadTokens struct {
 }
 
 // Get B2 keys from .env file.
-func GetKeys(key string) string {
+func GetKeys(key string) (string, error) {
 	envPath := os.Getenv("GOPATH") + "/.env"
 	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Fatal("[GetKeys]: %w", err)
+		return "", fmt.Errorf("[GetKeys]: %w", err)
 	}
 
 	APP_KEY_ID := os.Getenv("B2_APP_KEY_ID")
@@ -92,24 +92,34 @@ func GetKeys(key string) string {
 		"BUCKET_NAME": BUCKET_NAME,
 	}
 
-	return keys[key]
+	return keys[key], nil
 }
 
 // Authorize B2 bucket for upload.
 // DOCS: https://www.backblaze.com/b2/docs/b2_authorize_account.html
-func AuthTokens() B2AuthTokens {
-	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", GetKeys("APP_KEY_ID"), GetKeys("APP_KEY"))))
+func AuthTokens() (B2AuthTokens, error) {
+	keyID, err := GetKeys("APP_KEY_ID")
+	if err != nil {
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY_ID): %w", err)
+	}
+
+	key, err := GetKeys("APP_KEY")
+	if err != nil {
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY): %w", err)
+	}
+
+	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", keyID, key)))
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.backblazeb2.com/b2api/v2/b2_authorize_account", nil)
 	if err != nil {
-		log.Fatal("[AuthTokens][http.NewRequest]: %w", err)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][http.NewRequest]: %w", err)
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal("[AuthTokens][client.Do]: %w", err)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][client.Do]: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -118,20 +128,20 @@ func AuthTokens() B2AuthTokens {
 		var b2Error B2Error
 		err := json.NewDecoder(resp.Body).Decode(&b2Error)
 		if err != nil {
-			log.Fatal("[AuthTokens][json.NewDecoder](b2Error): %w", err)
+			return B2AuthTokens{}, fmt.Errorf("[AuthTokens][json.NewDecoder](b2Error): %w", err)
 		}
 
 		msg := b2Error.Message
 		if msg == "" {
 			msg = fmt.Sprintf("%d - %s", b2Error.Status, b2Error.Code)
 		}
-		log.Fatal("[AuthTokens][b2Error]: %w", msg)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][b2Error]: %s", msg)
 	}
 
 	var results B2AuthResp
 	err = json.NewDecoder(resp.Body).Decode(&results)
 	if err != nil {
-		log.Fatal("[AuthTokens][json.NewDecoder](results): %w", err)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][json.NewDecoder](results): %w", err)
 	}
 
 	AuthTokens := B2AuthTokens{
@@ -141,28 +151,37 @@ func AuthTokens() B2AuthTokens {
 		RecommendedPartSize: results.RecommendedPartSize,
 	}
 
-	return AuthTokens
+	return AuthTokens, nil
 }
 
 // Get B2 endpoint for upload.
 // DOCS: https://www.backblaze.com/b2/docs/b2_get_upload_url.html
-func GetUploadUrl() B2UploadTokens {
-	authData := AuthTokens()
+func GetUploadUrl() (B2UploadTokens, error) {
+	authData, err := AuthTokens()
+	if err != nil {
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][AuthTokens]: %w", err)
+	}
 
-	payload := map[string]string{"bucketId": GetKeys("BUCKET_ID")}
+	bucketID, err := GetKeys("BUCKET_ID")
+	if err != nil {
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][GetKeys](BUCKET_ID): %w", err)
+	}
+
+	payload := map[string]string{"bucketId": bucketID}
 	payloadBytes, _ := json.Marshal(payload)
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/b2api/v1/b2_get_upload_url", authData.ApiUrl), bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		log.Fatal("[GetUploadUrl][http.NewRequest]: %w", err)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][http.NewRequest]: %w", err)
 	}
+
 	req.Header.Set("Authorization", authData.AuthorizationToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal("[GetUploadUrl][client.Do]: %w", err)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][client.Do]: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -171,20 +190,20 @@ func GetUploadUrl() B2UploadTokens {
 		var b2Error B2Error
 		err := json.NewDecoder(resp.Body).Decode(&b2Error)
 		if err != nil {
-			log.Fatal("[GetUploadUrl][json.NewDecoder](b2Error): %w", err)
+			return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][json.NewDecoder](b2Error): %w", err)
 		}
 
 		msg := b2Error.Message
 		if msg == "" {
 			msg = fmt.Sprintf("%d - %s", b2Error.Status, b2Error.Code)
 		}
-		log.Fatal("[GetUploadUrl][b2Error]: %w", msg)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][b2Error]: %s", msg)
 	}
 
 	var results B2UpUrlResp
 	err = json.NewDecoder(resp.Body).Decode(&results)
 	if err != nil {
-		log.Fatal("[GetUploadUrl][json.NewDecoder](results): %w", err)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][json.NewDecoder](results): %w", err)
 	}
 
 	uploadTokens := B2UploadTokens{
@@ -193,13 +212,16 @@ func GetUploadUrl() B2UploadTokens {
 		DownloadUrl: authData.DownloadUrl,
 	}
 
-	return uploadTokens
+	return uploadTokens, nil
 }
 
 // Upload file to B2 bucket.
 // DOCS: https://www.backblaze.com/b2/docs/b2_upload_file.html
-func UploadToB2(data []byte, name, fileType string) string {
-	authData := GetUploadUrl()
+func UploadToB2(data []byte, name, fileType string) (string, error) {
+	authData, err := GetUploadUrl()
+	if err != nil {
+		return "", fmt.Errorf("[UploadToB2][GetUploadUrl]: %w", err)
+	}
 
 	hasher := sha1.New()
 	hasher.Write(data)
@@ -211,8 +233,9 @@ func UploadToB2(data []byte, name, fileType string) string {
 
 	req, err := http.NewRequest("POST", authData.Endpoint, bytes.NewReader(data))
 	if err != nil {
-		log.Fatal("[UploadToB2][http.NewRequest]: %w", err)
+		return "", fmt.Errorf("[UploadToB2][http.NewRequest]: %w", err)
 	}
+
 	req.Header.Set("Authorization", authData.AuthToken)
 	req.Header.Set("X-Bz-File-Name", name)
 	req.Header.Set("Content-Type", fileType)
@@ -223,7 +246,7 @@ func UploadToB2(data []byte, name, fileType string) string {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal("[UploadToB2][client.Do]: %w", err)
+		return "", fmt.Errorf("[UploadToB2][client.Do]: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -231,25 +254,30 @@ func UploadToB2(data []byte, name, fileType string) string {
 		var b2Error B2Error
 		err := json.NewDecoder(resp.Body).Decode(&b2Error)
 		if err != nil {
-			log.Fatal("[UploadToB2][json.NewDecoder](b2Error): %w", err)
+			return "", fmt.Errorf("[UploadToB2][json.NewDecoder](b2Error): %w", err)
 		}
 
 		msg := b2Error.Message
 		if msg == "" {
 			msg = fmt.Sprintf("%d - %s", b2Error.Status, b2Error.Code)
 		}
-		log.Fatal("[UploadToB2][b2Error]: %w", msg)
+		return "", fmt.Errorf("[UploadToB2][b2Error]: %s", msg)
 	}
 
 	var results B2UploadResp
 	err = json.NewDecoder(resp.Body).Decode(&results)
 	if err != nil {
-		log.Fatal("[UploadToB2][json.NewDecoder](results): %w", err)
+		return "", fmt.Errorf("[UploadToB2][json.NewDecoder](results): %w", err)
 	}
 
-	log.Printf("[uploadContentB2] [UploadToB2]: Uploaded '%s'.\n", results.FileName)
+	bucketName, err := GetKeys("BUCKET_NAME")
+	if err != nil {
+		return "", fmt.Errorf("[UploadToB2][GetKeys](BUCKET_NAME): %w", err)
+	}
 
-	publicURL := fmt.Sprintf("%s/file/%s/%s", authData.DownloadUrl, GetKeys("BUCKET_NAME"), results.FileName)
+	log.Printf("[UploadToB2]: Uploaded '%s'.\n", results.FileName)
 
-	return publicURL
+	publicURL := fmt.Sprintf("%s/file/%s/%s", authData.DownloadUrl, bucketName, results.FileName)
+
+	return publicURL, nil
 }

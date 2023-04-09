@@ -3,7 +3,6 @@ package helpers
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,7 +20,7 @@ import (
 )
 
 // Get Markdown version of article from url.
-func GetArticle(name string, urlString string) []byte {
+func GetArticle(name string, urlString string) ([]byte, error) {
 	browser := rod.New().MustConnect().NoDefaultDevice()
 
 	// visit url
@@ -66,25 +65,25 @@ func GetArticle(name string, urlString string) []byte {
 	// get html
 	htmlString, err := page.HTML()
 	if err != nil {
-		log.Fatal("[GetArticle][page.HTML] %w", err)
+		return nil, fmt.Errorf("[GetArticle][page.HTML] %w", err)
 	}
 
 	// get html node
 	htmlNode, err := html.Parse(strings.NewReader(htmlString))
 	if err != nil {
-		log.Fatal("[GetArticle][html.Parse] %w", err)
+		return nil, fmt.Errorf("[GetArticle][html.Parse] %w", err)
 	}
 
 	// get url object
 	pageURL, err := url.Parse(urlString)
 	if err != nil {
-		log.Fatal("[GetArticle][url.Parse] %w", err)
+		return nil, fmt.Errorf("[GetArticle][url.Parse] %w", err)
 	}
 
 	// get article and convert to markdown
 	article, err := readability.FromDocument(htmlNode, pageURL)
 	if err != nil {
-		log.Fatal("[GetArticle][readability.FromReader] %w", err)
+		return nil, fmt.Errorf("[GetArticle][readability.FromReader] %w", err)
 	}
 	markdown := article.Content
 
@@ -99,48 +98,54 @@ func GetArticle(name string, urlString string) []byte {
 		markdown = re3.ReplaceAllString(markdown, "")
 	}
 
-	finalMD := fmt.Sprintf("# %s\n\n%s", name, markdown)
+	media := fmt.Sprintf("# %s\n\n%s", name, markdown)
 
-	return []byte(finalMD)
+	return []byte(media), nil
 }
 
 // Get media file from source URL.
-func GetMedia(name string, url string) []byte {
+func GetMedia(name string, url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal("[GetMedia][http.Get]: %w", err)
+		return nil, fmt.Errorf("[GetMedia][http.Get]: %w", err)
 	}
 
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	media, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("[GetMedia][io.ReadAll]: %w", err)
+		return nil, fmt.Errorf("[GetMedia][io.ReadAll]: %w", err)
 	}
 
-	return body
+	return media, nil
 }
 
 // Get YouTube file from url.
-func GetYTVid(name string, url string) []byte {
+func GetYTVid(name string, url string) ([]byte, error) {
 	fileName := utils.FileNameFmt(name)
 	filePath := fileName + ".mp4"
 
 	// download video with the ytdl function
-	utils.YTDL(url, filePath)
-
-	// read downloaded file into buffer
-	buffer, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Fatal("[GetYTVid][os.ReadFile]: %w", err)
+	ytdlErr := utils.YTDL(url, filePath)
+	if ytdlErr != nil {
+		return nil, fmt.Errorf("[GetYTVid][YTDL]: %w", ytdlErr)
 	}
 
-	utils.DeleteFiles([]string{filePath})
+	// read downloaded file into buffer
+	media, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("[GetYTVid][os.ReadFile]: %w", err)
+	}
 
-	return buffer
+	dfErr := utils.DeleteFiles([]string{filePath})
+	if dfErr != nil {
+		return nil, fmt.Errorf("[GetYTVid][DeleteFiles]: %w", dfErr)
+	}
+
+	return media, nil
 }
 
-func GetContent(name string, url string, mediaType string) []byte {
+func GetContent(name string, url string, mediaType string) ([]byte, error) {
 	switch mediaType {
 	case "articles":
 		return GetArticle(name, url)

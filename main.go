@@ -13,14 +13,21 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
-func archive(name string, url string, typeName string) string {
-	media := helpers.GetContent(name, url, typeName)
+func archive(name string, url string, typeName string) (string, error) {
+	media, getcontentErr := helpers.GetContent(name, url, typeName)
+	if getcontentErr != nil {
+		return "", fmt.Errorf("[archive][GetContent]: %w", getcontentErr)
+	}
+
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
 	path := fmt.Sprintf("Bookmarks/%s/%s.%s", list, name, typeOps.File)
-	archiveUrl := helpers.UploadToB2(media, path, typeOps.MIME)
+	archiveUrl, uploadtob2Err := helpers.UploadToB2(media, path, typeOps.MIME)
+	if uploadtob2Err != nil {
+		return "", fmt.Errorf("[archive][UploadToB2]: %w", uploadtob2Err)
+	}
 
-	return archiveUrl
+	return archiveUrl, nil
 }
 
 func main() {
@@ -78,7 +85,10 @@ func main() {
 			url := record.SchemaData()["url"].(string)
 			typeName := record.SchemaData()["type"].(string)
 
-			archive := archive(name, url, typeName)
+			archive, archiveErr := archive(name, url, typeName)
+			if archiveErr != nil {
+				return fmt.Errorf("[OnRecordAfterCreateRequest][archiveErr]: %w", archiveErr)
+			}
 
 			record.Set("archive", archive)
 		}

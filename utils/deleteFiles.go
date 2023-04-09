@@ -1,16 +1,18 @@
 package utils
 
 import (
-	"log"
+	"fmt"
 	"os"
 )
 
 // Delete list of files.
-func DeleteFiles(files []string) {
+func DeleteFiles(files []string) error {
 	for _, file := range files {
 		err := os.Remove(file)
 		if err != nil {
-			log.Fatal("[DeleteFiles]: %w", err)
+			return fmt.Errorf("[DeleteFiles]: %w", err)
 		}
 	}
+
+	return nil
 }
