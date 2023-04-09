@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2023-04-09
+
+### Bug Fixes
+
+- [Setup internal packages for imports.](https://github.com/fourjuaneight/rivendell/commit/82a18aa6cfd26b20f55d608e4a6f003d6e0db3fb)
+- [Use crud hook to set default values before save.](https://github.com/fourjuaneight/rivendell/commit/ae3ff67aecb9e81ddabe439dfee40a0426bc8795)
+- [Improved error handling.](https://github.com/fourjuaneight/rivendell/commit/c7e4ded0ea9f3536bf6aac987e7931cc716c45dc)
+
+### Features
+
+- [Add content formatting utility methods.](https://github.com/fourjuaneight/rivendell/commit/0ee75d474f06b632f6792ef935c0062d6b047995)
+- [Add file cleanup utility method.](https://github.com/fourjuaneight/rivendell/commit/f3a1187455b4cf86e2bcbba3048833ab24d0b583)
+- [Add ytdl cmd utility method.](https://github.com/fourjuaneight/rivendell/commit/efa91d4338509f2a24340efb3940b7a09aeb5dde)
+- [Add content archiving utility method.](https://github.com/fourjuaneight/rivendell/commit/f98f487cd9e60a9aa08d0ccf5ec0237aafaf8e61)
+- [Add B2 content uploader helper method.](https://github.com/fourjuaneight/rivendell/commit/35e94719145a773cc3ac7d363794dbbb42c3302a)
+- [Add default values to booleans.](https://github.com/fourjuaneight/rivendell/commit/28ddc10e1a9f701db5d9677ec18a96a55ccd67fd)
+- [Add select options to type fields.](https://github.com/fourjuaneight/rivendell/commit/9ff7fcad206d6a756b6fb64e203fd75355016a87)
+- [Add util method to determine file ext and mime types.](https://github.com/fourjuaneight/rivendell/commit/db55acb82151578ad9e7334e069b9b703afc80aa)
+- [Add archiving at record creation for bookmarks.](https://github.com/fourjuaneight/rivendell/commit/696bab7ef9eba09f0734df79db7042908909b8e7)
+
+### Miscellaneous Tasks
+
+- [Update Changelog.](https://github.com/fourjuaneight/rivendell/commit/c40698970f9acd40c7bc659beccf45b1e57fc58c)
+- [Bump golang.org/x/image from 0.3.0 to 0.5.0](https://github.com/fourjuaneight/rivendell/commit/de80300c3b4291ba5d885692115995b3ed61b89c)
+- [Bump golang.org/x/net from 0.5.0 to 0.7.0](https://github.com/fourjuaneight/rivendell/commit/09818c79934ac8e10b20f036cebea97d32eeda2d)
+- [Update dependencies and add simple usage instructions.](https://github.com/fourjuaneight/rivendell/commit/0b245e238c5078be40f75a9ae043a8399785fb9f)
+- [Update dependencies.](https://github.com/fourjuaneight/rivendell/commit/c00ce22ad65c68f8ce6de0cfb8b632293a191cab)
+- [Better error logging.](https://github.com/fourjuaneight/rivendell/commit/08d8aa42708ed1f0e808cbf06f94f843fb972b50)
+- [Minor comment updates.](https://github.com/fourjuaneight/rivendell/commit/9af1520fab59acee3930f9ede5507d1cadc70ff0)
+
 ## [1.0.0] - 2023-02-02
 
 ### Features
