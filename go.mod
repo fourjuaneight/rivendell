@@ -3,20 +3,17 @@ module github.com/fourjuaneight/rivendell
 go 1.19
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/go-shiori/go-readability v0.0.0-20220215145315-dd6828d2f09b
 	github.com/joho/godotenv v1.4.0
 	github.com/pocketbase/pocketbase v0.14.3
 )
 
 require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
-	github.com/go-rod/rod v0.112.8 // indirect
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65 // indirect
-	github.com/go-shiori/go-readability v0.0.0-20220215145315-dd6828d2f09b // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/ysmood/goob v0.4.0 // indirect
-	github.com/ysmood/gson v0.7.3 // indirect
-	github.com/ysmood/leakless v0.8.0 // indirect
 )
 
 require (
@@ -75,11 +72,11 @@ require (
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/image v0.6.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/net v0.9.0
 	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/term v0.7.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/text v0.9.0
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect

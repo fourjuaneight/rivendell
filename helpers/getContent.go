@@ -11,9 +11,7 @@ import (
 
 	"github.com/fourjuaneight/rivendell/utils"
 
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/devices"
-	"github.com/go-rod/rod/lib/proto"
+	query "github.com/PuerkitoBio/goquery"
 	readability "github.com/go-shiori/go-readability"
 
 	"golang.org/x/net/html"
@@ -21,14 +19,24 @@ import (
 
 // Get Markdown version of article from url.
 func GetArticle(name string, urlString string) ([]byte, error) {
-	browser := rod.New().MustConnect().NoDefaultDevice()
+	// get html from url
+	resp, err := http.Get(urlString)
+	if err != nil {
+		return nil, fmt.Errorf("[GetArticle][http.Get] %w", err)
+	}
+	defer resp.Body.Close()
 
-	// visit url
-	page := browser.MustPage(urlString).MustEmulate(devices.LaptopWithHiDPIScreen)
-	page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
-		Width:  1200,
-		Height: 630,
-	})
+	if resp.StatusCode != http.StatusOK {
+		mgs := fmt.Sprintf("%d - %s", resp.StatusCode, resp.Status)
+
+		return nil, fmt.Errorf("[GetArticle][resp] %s", mgs)
+	}
+
+	// parse html
+	doc, err := query.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("[GetArticle][query.NewDocumentFromReader] %w", err)
+	}
 
 	// remove annoyances
 	cleanDoc := []string{
@@ -59,13 +67,15 @@ func GetArticle(name string, urlString string) ([]byte, error) {
 		"iframe",
 	}
 	for _, selector := range cleanDoc {
-		page.MustElement(selector).MustRemove()
+		doc.Find(selector).Each(func(i int, s *query.Selection) {
+			s.Remove()
+		})
 	}
 
 	// get html
-	htmlString, err := page.HTML()
+	htmlString, err := doc.Html()
 	if err != nil {
-		return nil, fmt.Errorf("[GetArticle][page.HTML] %w", err)
+		return nil, fmt.Errorf("[GetArticle][doc.Html] %w", err)
 	}
 
 	// get html node
