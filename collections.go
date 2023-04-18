@@ -81,7 +81,7 @@ func bookmarksCollection() *models.Collection {
 				Unique:   false,
 				Options: &schema.SelectOptions{
 					MaxSelect: 1,
-					Values:    []string{"article", "comics", "podcasts", "videos"},
+					Values:    []string{"articles", "comics", "podcasts", "videos"},
 				},
 			},
 			&schema.SchemaField{
