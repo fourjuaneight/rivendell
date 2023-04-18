@@ -91,6 +91,7 @@ func main() {
 			}
 
 			record.Set("archive", archive)
+			app.Dao().SaveRecord(record)
 		}
 
 		return nil
