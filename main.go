@@ -21,7 +21,7 @@ func archive(name string, url string, typeName string) (string, error) {
 
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
-	path := fmt.Sprintf("Bookmarks/%s/%s.%s", list, name, typeOps.File)
+	path := fmt.Sprintf("Bookmarks/%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
 	archiveUrl, uploadtob2Err := helpers.UploadToB2(media, path, typeOps.MIME)
 	if uploadtob2Err != nil {
 		return "", fmt.Errorf("[archive][UploadToB2]: %w", uploadtob2Err)
