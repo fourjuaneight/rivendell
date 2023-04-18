@@ -74,7 +74,7 @@ type B2UploadTokens struct {
 
 // Get B2 keys from .env file.
 func GetKeys(key string) (string, error) {
-	envPath := os.Getenv("GOPATH") + "/.env"
+	envPath := os.Getenv("PWD") + "/.env"
 	err := godotenv.Load(envPath)
 	if err != nil {
 		return "", fmt.Errorf("[GetKeys]: %w", err)
@@ -241,7 +241,7 @@ func UploadToB2(data []byte, name, fileType string) (string, error) {
 	req.Header.Set("Content-Type", fileType)
 	req.Header.Set("Content-Length", strconv.Itoa(len(data)))
 	req.Header.Set("X-Bz-Content-Sha1", hash)
-	req.Header.Set("X-Bz-Info-Author", "gh-action")
+	req.Header.Set("X-Bz-Info-Author", "rivendell")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
