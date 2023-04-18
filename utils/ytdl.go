@@ -2,35 +2,35 @@ package utils
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
+	"strings"
 )
+
+func installBin() error {
+	wgetErr := CMD("sudo", "wget", "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp", "-O", "/usr/local/bin/yt-dlp")
+	if wgetErr != nil {
+		return fmt.Errorf("[installBin][wget]: %w", wgetErr)
+	}
+
+	chmodErr := CMD("sudo", "chmod", "a+rx", "/usr/local/bin/yt-dlp")
+	if chmodErr != nil {
+		return fmt.Errorf("[installBin][chmod]: %w", chmodErr)
+	}
+
+	return nil
+}
 
 // Download YT video from url.
 func YTDL(url string, name string) error {
-	cmd := exec.Command("/usr/local/bin/yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio:", "--merge-output-format", "mp4", "-o", name, url)
-	stderr, err := cmd.StderrPipe()
+	err := CMD("yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio:", "--merge-output-format", "mp4", "-o", name, url)
 	if err != nil {
-		return fmt.Errorf("[YTDL][cmd.StderrPipe]: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("[YTDL][cmd.Start]: %w", err)
-	}
-
-	buf := make([]byte, 1024)
-	for {
-		n, err := stderr.Read(buf)
-		if n > 0 {
-			os.Stderr.Write(buf[:n])
+		if strings.Contains(err.Error(), "no such file or directory") {
+			err := installBin()
+			if err != nil {
+				return fmt.Errorf("[YTDL]: %w", err)
+			}
 		}
-		if err != nil {
-			break
-		}
-	}
 
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("[YTDL][cmd.Wait]: %w", err)
+		return fmt.Errorf("[YTDL][yt-dlp]: %w", err)
 	}
 
 	return nil
