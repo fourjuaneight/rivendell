@@ -2,6 +2,7 @@ version: '3.8'
 services:
   app:
     container_name: app
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,8 +12,24 @@ services:
       - ./pb_data:/pb_data
 
     ports:
-      - '127.0.0.1:8090:8090'
+      - '8090:8090'
     environment:
       META_ID: "${META_ID}"
     env_file: .env
     entrypoint: go run . serve --http=0.0.0.0:8090
+  caddy:
+    image: caddy/caddy:2.2.1-alpine
+    container_name: caddy-service
+    restart: unless-stopped
+    ports:
+        - "80:80"
+        - "443:443"
+    volumes:
+    - $PWD/Caddyfile:/etc/caddy/Caddyfile
+    - $PWD/site:/srv
+    - caddy_data:/data
+    - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config: 
