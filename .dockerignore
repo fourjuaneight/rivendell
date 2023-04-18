@@ -7,3 +7,6 @@ dist
 Dockerfile
 Dockerfile.dev
 Dockerfile.prod
+.vscode
+bin
+pkg
