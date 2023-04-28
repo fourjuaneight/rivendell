@@ -6,6 +6,7 @@ import (
 	"os/exec"
 )
 
+// Execute a command and print its output to stderr.
 func CMD(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	stderr, err := cmd.StderrPipe()

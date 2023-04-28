@@ -73,7 +73,7 @@ type B2UploadTokens struct {
 }
 
 // Get B2 keys from .env file.
-func GetKeys(key string) (string, error) {
+func getKeys(key string) (string, error) {
 	envPath := os.Getenv("PWD") + "/.env"
 	err := godotenv.Load(envPath)
 	if err != nil {
@@ -98,12 +98,12 @@ func GetKeys(key string) (string, error) {
 // Authorize B2 bucket for upload.
 // DOCS: https://www.backblaze.com/b2/docs/b2_authorize_account.html
 func AuthTokens() (B2AuthTokens, error) {
-	keyID, err := GetKeys("APP_KEY_ID")
+	keyID, err := getKeys("APP_KEY_ID")
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY_ID): %w", err)
 	}
 
-	key, err := GetKeys("APP_KEY")
+	key, err := getKeys("APP_KEY")
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY): %w", err)
 	}
@@ -162,7 +162,7 @@ func GetUploadUrl() (B2UploadTokens, error) {
 		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][AuthTokens]: %w", err)
 	}
 
-	bucketID, err := GetKeys("BUCKET_ID")
+	bucketID, err := getKeys("BUCKET_ID")
 	if err != nil {
 		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][GetKeys](BUCKET_ID): %w", err)
 	}
@@ -270,7 +270,7 @@ func UploadToB2(data []byte, name, fileType string) (string, error) {
 		return "", fmt.Errorf("[UploadToB2][json.NewDecoder](results): %w", err)
 	}
 
-	bucketName, err := GetKeys("BUCKET_NAME")
+	bucketName, err := getKeys("BUCKET_NAME")
 	if err != nil {
 		return "", fmt.Errorf("[UploadToB2][GetKeys](BUCKET_NAME): %w", err)
 	}
