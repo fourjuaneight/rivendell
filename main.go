@@ -81,7 +81,9 @@ func main() {
 		record := e.Record
 		collection := record.Collection().Name
 
-		if collection == "bookmarks" {
+		switch collection {
+		case "bookmarks":
+			// archive bookmarks
 			name := record.SchemaData()["title"].(string)
 			url := record.SchemaData()["url"].(string)
 			typeName := record.SchemaData()["type"].(string)
@@ -92,8 +94,23 @@ func main() {
 			}
 
 			record.Set("archive", archive)
-			app.Dao().SaveRecord(record)
+		case "repositories":
+			// query repository info
+			url := record.SchemaData()["url"].(string)
+
+			repo, repoErr := helpers.GetRepoInfo(url)
+			if repoErr != nil {
+				return fmt.Errorf("[OnRecordAfterCreateRequest][archiveErr]: %w", repoErr)
+			}
+
+			record.Set("name", repo.Name)
+			record.Set("owner", repo.Owner)
+			record.Set("description", repo.Description)
+			record.Set("language", repo.Language)
+		default:
 		}
+
+		app.Dao().SaveRecord(record)
 
 		return nil
 	})
