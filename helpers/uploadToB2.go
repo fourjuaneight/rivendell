@@ -8,10 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
 type B2AuthResp struct {
@@ -72,38 +69,15 @@ type B2UploadTokens struct {
 	DownloadUrl string
 }
 
-// Get B2 keys from .env file.
-func getKeys(key string) (string, error) {
-	envPath := os.Getenv("PWD") + "/.env"
-	err := godotenv.Load(envPath)
-	if err != nil {
-		return "", fmt.Errorf("[GetKeys]: %w", err)
-	}
-
-	APP_KEY_ID := os.Getenv("B2_APP_KEY_ID")
-	APP_KEY := os.Getenv("B2_APP_KEY")
-	BUCKET_ID := os.Getenv("B2_BUCKET_ID")
-	BUCKET_NAME := os.Getenv("B2_BUCKET_NAME")
-
-	keys := map[string]string{
-		"APP_KEY_ID":  APP_KEY_ID,
-		"APP_KEY":     APP_KEY,
-		"BUCKET_ID":   BUCKET_ID,
-		"BUCKET_NAME": BUCKET_NAME,
-	}
-
-	return keys[key], nil
-}
-
 // Authorize B2 bucket for upload.
 // DOCS: https://www.backblaze.com/b2/docs/b2_authorize_account.html
 func AuthTokens() (B2AuthTokens, error) {
-	keyID, err := getKeys("APP_KEY_ID")
+	keyID, err := GetKeys("APP_KEY_ID")
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY_ID): %w", err)
 	}
 
-	key, err := getKeys("APP_KEY")
+	key, err := GetKeys("APP_KEY")
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY): %w", err)
 	}
@@ -162,7 +136,7 @@ func GetUploadUrl() (B2UploadTokens, error) {
 		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][AuthTokens]: %w", err)
 	}
 
-	bucketID, err := getKeys("BUCKET_ID")
+	bucketID, err := GetKeys("BUCKET_ID")
 	if err != nil {
 		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][GetKeys](BUCKET_ID): %w", err)
 	}
@@ -270,7 +244,7 @@ func UploadToB2(data []byte, name, fileType string) (string, error) {
 		return "", fmt.Errorf("[UploadToB2][json.NewDecoder](results): %w", err)
 	}
 
-	bucketName, err := getKeys("BUCKET_NAME")
+	bucketName, err := GetKeys("BUCKET_NAME")
 	if err != nil {
 		return "", fmt.Errorf("[UploadToB2][GetKeys](BUCKET_NAME): %w", err)
 	}
