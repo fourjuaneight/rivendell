@@ -16,9 +16,9 @@ type Response struct {
 			Owner struct {
 				Login string `json:"login"`
 			} `json:"owner"`
-			Description     string `json:"description"`
+			Description     *string `json:"description"`
 			PrimaryLanguage struct {
-				Name string `json:"name"`
+				Name *string `json:"name"`
 			} `json:"primaryLanguage"`
 		} `json:"repository"`
 	} `json:"data"`
@@ -113,12 +113,22 @@ func GetRepoInfo(url string) (CleanRepo, error) {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][json.Unmarshal]: %w", err)
 	}
 
+	description := ""
+	if results.Data.Repository.Description != nil {
+		description = *results.Data.Repository.Description
+	}
+
+	language := "Markdown"
+	if results.Data.Repository.PrimaryLanguage.Name != nil {
+		language = *results.Data.Repository.PrimaryLanguage.Name
+	}
+
 	cleanRepo := CleanRepo{
 		Name:        results.Data.Repository.Name,
 		Owner:       results.Data.Repository.Owner.Login,
-		Description: results.Data.Repository.Description,
+		Description: description,
 		URL:         url,
-		Language:    results.Data.Repository.PrimaryLanguage.Name,
+		Language:    language,
 	}
 
 	return cleanRepo, nil
