@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2023-06-03
+
+### Bug Fixes
+
+- [Minor syntax updates.](https://github.com/fourjuaneight/rivendell/commit/ab6263784a76a4cf7fffe31a5f0a4dda0bdc188f)
+- [Add correct file name formatting.](https://github.com/fourjuaneight/rivendell/commit/a4ca28172e5e093bf06ff697e19c61ab71431d40)
+- [Load env vars from local file.](https://github.com/fourjuaneight/rivendell/commit/78da87fb5742c6f89cb0ac88ce32b7a0963e6290)
+- [Use goquery for article parsing.](https://github.com/fourjuaneight/rivendell/commit/e63fa069298cff96743b75c097baf9c0fa0ca902)
+- [Save record after updating.](https://github.com/fourjuaneight/rivendell/commit/e2c66e5042df90bceedd27fbd6749a6a473da328)
+- [Add default for empty repo values.](https://github.com/fourjuaneight/rivendell/commit/059f1f3b3ff697b474d6ca27f4283470d9f51cfd)
+
+### Features
+
+- [Add production caddy step for proxy server.](https://github.com/fourjuaneight/rivendell/commit/65fc696cd754834a64b4fe31a88a478002909a5d)
+- [Add date and time helper methods.](https://github.com/fourjuaneight/rivendell/commit/b983ecd332daf72153394f960aa8e938fd438120)
+- [Move env keys lookup to standalone file.](https://github.com/fourjuaneight/rivendell/commit/e18f04ff3b1dd35a3092d4eb4819d23767be0190)
+- [Add method to query GitHub repo data from url.](https://github.com/fourjuaneight/rivendell/commit/e88572d0a699467cb8205150be3df718eafb13df)
+- [Add repos table.](https://github.com/fourjuaneight/rivendell/commit/98423ecc2e280329994c7ce180c852bcc66c97dd)
+- [Add case to query repository data on new entry.](https://github.com/fourjuaneight/rivendell/commit/4230922a0375809fa0f7ff3f25be7fbd9c000685)
+
+### Miscellaneous Tasks
+
+- [Update Changelog.](https://github.com/fourjuaneight/rivendell/commit/82eb9eca69ca6c57fd29662a947fcfc78e7df174)
+- [Minor docker config optimizations.](https://github.com/fourjuaneight/rivendell/commit/b9bada63371005276d8c2894df96d17d47a7b36c)
+- [Installs yt-dlp if bin is missing.](https://github.com/fourjuaneight/rivendell/commit/9bbae6c0578afcd00a22f8a25d94aad4a1ff8e14)
+- [Improved comments.](https://github.com/fourjuaneight/rivendell/commit/73a8be6030dde927f581feca945d18f0365cd7d7)
+- [Update repo struct.](https://github.com/fourjuaneight/rivendell/commit/928c9258b04017caff69bbc21d2be11580620a4e)
+- [Update dependencies.](https://github.com/fourjuaneight/rivendell/commit/c0431995abc78ed13301d8dcd4df3be25a7c455b)
+
 ## [1.1.0] - 2023-04-09
 
 ### Bug Fixes
