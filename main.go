@@ -39,6 +39,7 @@ func main() {
 		musicCollection(),
 		mtgCollection(),
 		recordsCollection(),
+		repositoriesCollection(),
 		metaCollection(),
 	}
 

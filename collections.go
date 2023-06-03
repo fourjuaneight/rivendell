@@ -460,6 +460,52 @@ func recordsCollection() *models.Collection {
 	return collection
 }
 
+func repositoriesCollection() *models.Collection {
+	collection := &models.Collection{
+		Name:       "repositories",
+		Type:       models.CollectionTypeBase,
+		ListRule:   nil,
+		ViewRule:   types.Pointer("@request.auth.id != ''"),
+		CreateRule: types.Pointer(""),
+		UpdateRule: types.Pointer("@request.auth.id != ''"),
+		DeleteRule: nil,
+		Schema: schema.NewSchema(
+			&schema.SchemaField{
+				Name:     "name",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "owner",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "description",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "language",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "url",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Unique:   true,
+			},
+		),
+	}
+
+	return collection
+}
+
 func metaCollection() *models.Collection {
 	collection := &models.Collection{
 		Name:       "meta",
