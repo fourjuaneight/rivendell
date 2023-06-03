@@ -25,7 +25,7 @@ type Response struct {
 }
 
 type CleanRepo struct {
-	Repository  string
+	Name        string
 	Owner       string
 	Description string
 	URL         string
@@ -114,7 +114,7 @@ func GetRepoInfo(url string) (CleanRepo, error) {
 	}
 
 	cleanRepo := CleanRepo{
-		Repository:  results.Data.Repository.Name,
+		Name:        results.Data.Repository.Name,
 		Owner:       results.Data.Repository.Owner.Login,
 		Description: results.Data.Repository.Description,
 		URL:         url,
