@@ -32,10 +32,10 @@ type CleanRepo struct {
 	Language    string
 }
 
-func parseURL(url string) (string, string, error) {
+func parseGHURL(url string) (string, string, error) {
 	regex, err := regexp.Compile(`github\.com/([^/]+)/([^/]+)`)
 	if err != nil {
-		return "", "", fmt.Errorf("[parseURL][regexp.Compile]: %w", err)
+		return "", "", fmt.Errorf("[parseGHURL][regexp.Compile]: %w", err)
 
 	}
 
@@ -44,17 +44,17 @@ func parseURL(url string) (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", fmt.Errorf("[parseURL]: No matches found%w", nil)
-
+	return "", "", fmt.Errorf("[parseGHURL]: No matches found%w", nil)
 }
 
+// DOCS: https://docs.github.com/en/graphql/reference/queries#repository
 func GetRepoInfo(url string) (CleanRepo, error) {
 	token, err := GetKeys("GH_TOKEN")
 	if err != nil {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][GetKeys](GH_TOKEN): %w", err)
 	}
 
-	owner, repo, err := parseURL(url)
+	owner, repo, err := parseGHURL(url)
 	if err != nil {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo]%w", err)
 	}
