@@ -460,9 +460,9 @@ func recordsCollection() *models.Collection {
 	return collection
 }
 
-func repositoriesCollection() *models.Collection {
+func githubCollection() *models.Collection {
 	collection := &models.Collection{
-		Name:       "repositories",
+		Name:       "github",
 		Type:       models.CollectionTypeBase,
 		ListRule:   nil,
 		ViewRule:   types.Pointer("@request.auth.id != ''"),

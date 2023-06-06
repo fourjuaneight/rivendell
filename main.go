@@ -39,7 +39,7 @@ func main() {
 		musicCollection(),
 		mtgCollection(),
 		recordsCollection(),
-		repositoriesCollection(),
+		githubCollection(),
 		metaCollection(),
 	}
 
@@ -94,7 +94,7 @@ func main() {
 			}
 
 			record.Set("archive", archive)
-		case "repositories":
+		case "github":
 			// query repository info
 			url := record.SchemaData()["url"].(string)
 
