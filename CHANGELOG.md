@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2023-06-06
+
+### Features
+
+- [Add query to get stake exchange info.](https://github.com/fourjuaneight/rivendell/commit/c5eb8fde6f58808064e6c4144498b5c6dbc2b444)
+- [Add stack exchange table.](https://github.com/fourjuaneight/rivendell/commit/52811ea8f5bc72128b7787feb6ca663e0b8e2997)
+
+### Miscellaneous Tasks
+
+- [Update Changelog.](https://github.com/fourjuaneight/rivendell/commit/15a7299b01e820e1b10b0415900922bd686850e4)
+- [Minor syntax optimizations.](https://github.com/fourjuaneight/rivendell/commit/b46514663ae30ad1370ae218cf9add51573282a3)
+- [Rename table to match source.](https://github.com/fourjuaneight/rivendell/commit/a900350df99b52490dce7cd646f82b004550ff2d)
+
 ## [1.2.0] - 2023-06-03
 
 ### Bug Fixes
