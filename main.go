@@ -40,6 +40,7 @@ func main() {
 		mtgCollection(),
 		recordsCollection(),
 		githubCollection(),
+		stackExchangeCollection(),
 		metaCollection(),
 	}
 
@@ -100,13 +101,26 @@ func main() {
 
 			repo, repoErr := helpers.GetRepoInfo(url)
 			if repoErr != nil {
-				return fmt.Errorf("[OnRecordAfterCreateRequest][archiveErr]: %w", repoErr)
+				return fmt.Errorf("[OnRecordAfterCreateRequest][repoErr]: %w", repoErr)
 			}
 
 			record.Set("name", repo.Name)
 			record.Set("owner", repo.Owner)
 			record.Set("description", repo.Description)
 			record.Set("language", repo.Language)
+		case "stack_exchange":
+			// query repository info
+			question := record.SchemaData()["question"].(string)
+
+			questionInfo, questionInfoErr := helpers.GetQuestionInfo(question)
+			if questionInfoErr != nil {
+				return fmt.Errorf("[OnRecordAfterCreateRequest][questionInfoErr]: %w", questionInfoErr)
+			}
+
+			record.Set("title", questionInfo.Title)
+			record.Set("question", questionInfo.Question)
+			record.Set("answers", questionInfo.Answer)
+			record.Set("tags", questionInfo.Tags)
 		default:
 		}
 

@@ -506,6 +506,46 @@ func githubCollection() *models.Collection {
 	return collection
 }
 
+func stackExchangeCollection() *models.Collection {
+	collection := &models.Collection{
+		Name:       "stack_exchange",
+		Type:       models.CollectionTypeBase,
+		ListRule:   nil,
+		ViewRule:   types.Pointer("@request.auth.id != ''"),
+		CreateRule: types.Pointer(""),
+		UpdateRule: types.Pointer("@request.auth.id != ''"),
+		DeleteRule: nil,
+		Schema: schema.NewSchema(
+			&schema.SchemaField{
+				Name:     "title",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "question",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "answer",
+				Type:     schema.FieldTypeText,
+				Required: false,
+				Unique:   false,
+			},
+			&schema.SchemaField{
+				Name:     "tags",
+				Type:     schema.FieldTypeJson,
+				Required: false,
+				Unique:   false,
+			},
+		),
+	}
+
+	return collection
+}
+
 func metaCollection() *models.Collection {
 	collection := &models.Collection{
 		Name:       "meta",
