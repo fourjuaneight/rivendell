@@ -158,19 +158,19 @@ const (
 func parseMDURL(url string) (string, error) {
 	regex, err := regexp.Compile(`https?:\/\/[^/]+\/title\/([a-f0-9-]+)\/?.*`)
 	if err != nil {
-		return "", fmt.Errorf("[parseSEURL][regexp.Compile]: %w", err)
+		return "", fmt.Errorf("[parseMDURL][regexp.Compile]: %w", err)
 
 	}
 
 	id := regex.ReplaceAllString(url, "$1")
 
-	return id, fmt.Errorf("[parseSEURL]: No matches found%w", nil)
+	return id, fmt.Errorf("[parseMDURL]: No matches found%w", nil)
 }
 
 func getAuthor(id string) (string, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/author/%s", API, id))
 	if err != nil {
-		return "", fmt.Errorf("[getAuthor]%w", err)
+		return "", fmt.Errorf("[getAuthor]: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -182,38 +182,38 @@ func getAuthor(id string) (string, error) {
 
 	var response AuthorResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return "", fmt.Errorf("[getAuthor]%w", err)
+		return "", fmt.Errorf("[getAuthor]: %w", err)
 	}
 
 	return response.Data.Attributes.Name, nil
 }
 
-func GetMangaInfo(url string) (*CleanManga, error) {
+func GetMangaInfo(url string) (CleanManga, error) {
 	id, err := parseMDURL(url)
 	if err != nil {
-		return nil, fmt.Errorf("[GetMangaInfo]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo]%w", err)
 	}
 
 	resp, err := http.Get(fmt.Sprintf("%s/manga/%s?limit=100&includes%%5B%%5D=cover_art&includes%%5B%%5D=scanlation_group&order%%5Bvolume%%5D=desc&order%%5Bchapter%%5D=desc&offset=0&contentRating%%5B%%5D=safe&contentRating%%5B%%5D=suggestive&contentRating%%5B%%5D=erotica&contentRating%%5B%%5D=pornographic&translatedLanguage%%5B%%5D=en", API, id))
 	if err != nil {
-		return nil, fmt.Errorf("[GetMangaInfo][http.Get]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo][http.Get]: %w", err)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		err = fmt.Errorf("[fetch]: %d - %s (%s)", resp.StatusCode, resp.Status, id)
-		return nil, fmt.Errorf("[GetMangaInfo]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo]%w", err)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("[GetMangaInfo][io.ReadAll]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo][io.ReadAll]: %w", err)
 	}
 
 	var response MangaResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("[GetMangaInfo][json.Unmarshal]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo][json.Unmarshal]: %w", err)
 	}
 
 	var coverFile string
@@ -226,10 +226,10 @@ func GetMangaInfo(url string) (*CleanManga, error) {
 
 	author, err := getAuthor(response.Data.Relationships[0].ID)
 	if err != nil {
-		return nil, fmt.Errorf("[GetMangaInfo]%w", err)
+		return CleanManga{}, fmt.Errorf("[GetMangaInfo]%w", err)
 	}
 
-	return &CleanManga{
+	return CleanManga{
 		Title:       response.Data.Attributes.Title.En,
 		Description: response.Data.Attributes.Description.En,
 		Author:      author,

@@ -74,12 +74,12 @@ type B2UploadTokens struct {
 func AuthTokens() (B2AuthTokens, error) {
 	keyID, err := GetKeys("APP_KEY_ID")
 	if err != nil {
-		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY_ID): %w", err)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens]%w", err)
 	}
 
 	key, err := GetKeys("APP_KEY")
 	if err != nil {
-		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][GetKeys](APP_KEY): %w", err)
+		return B2AuthTokens{}, fmt.Errorf("[AuthTokens]%w", err)
 	}
 
 	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", keyID, key)))
@@ -133,12 +133,12 @@ func AuthTokens() (B2AuthTokens, error) {
 func GetUploadUrl() (B2UploadTokens, error) {
 	authData, err := AuthTokens()
 	if err != nil {
-		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][AuthTokens]: %w", err)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl]%w", err)
 	}
 
 	bucketID, err := GetKeys("BUCKET_ID")
 	if err != nil {
-		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][GetKeys](BUCKET_ID): %w", err)
+		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl]%w", err)
 	}
 
 	payload := map[string]string{"bucketId": bucketID}
@@ -194,7 +194,7 @@ func GetUploadUrl() (B2UploadTokens, error) {
 func UploadToB2(data []byte, name, fileType string) (string, error) {
 	authData, err := GetUploadUrl()
 	if err != nil {
-		return "", fmt.Errorf("[UploadToB2][GetUploadUrl]: %w", err)
+		return "", fmt.Errorf("[UploadToB2]%w", err)
 	}
 
 	hasher := sha1.New()
@@ -246,7 +246,7 @@ func UploadToB2(data []byte, name, fileType string) (string, error) {
 
 	bucketName, err := GetKeys("BUCKET_NAME")
 	if err != nil {
-		return "", fmt.Errorf("[UploadToB2][GetKeys](BUCKET_NAME): %w", err)
+		return "", fmt.Errorf("[UploadToB2]%w", err)
 	}
 
 	log.Printf("[UploadToB2]: Uploaded '%s'.\n", results.FileName)

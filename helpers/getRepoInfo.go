@@ -51,7 +51,7 @@ func parseGHURL(url string) (string, string, error) {
 func GetRepoInfo(url string) (CleanRepo, error) {
 	token, err := GetKeys("GH_TOKEN")
 	if err != nil {
-		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][GetKeys](GH_TOKEN): %w", err)
+		return CleanRepo{}, fmt.Errorf("[GetRepoInfo]%w", err)
 	}
 
 	owner, repo, err := parseGHURL(url)
