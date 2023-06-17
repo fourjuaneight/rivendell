@@ -164,7 +164,7 @@ func parseMDURL(url string) (string, error) {
 
 	id := regex.ReplaceAllString(url, "$1")
 
-	return id, fmt.Errorf("[parseMDURL]: No matches found%w", nil)
+	return id, nil
 }
 
 func getAuthor(id string) (string, error) {
