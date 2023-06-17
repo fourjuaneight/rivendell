@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/go-shiori/go-readability v0.0.0-20220215145315-dd6828d2f09b
 	github.com/joho/godotenv v1.4.0
-	github.com/pocketbase/pocketbase v0.16.4
+	github.com/pocketbase/pocketbase v0.16.5
 )
 
 require (
