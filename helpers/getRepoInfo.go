@@ -9,7 +9,7 @@ import (
 	"regexp"
 )
 
-type Response struct {
+type SEResponse struct {
 	Data struct {
 		Repository struct {
 			Name  string `json:"name"`
@@ -107,7 +107,7 @@ func GetRepoInfo(url string) (CleanRepo, error) {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][io.ReadAll]: %w", err)
 	}
 
-	var results Response
+	var results SEResponse
 	err = json.Unmarshal(body, &results)
 	if err != nil {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][json.Unmarshal]: %w", err)
