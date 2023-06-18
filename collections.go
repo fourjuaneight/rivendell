@@ -249,7 +249,7 @@ func mediaCollection() *models.Collection {
 			&schema.SchemaField{
 				Name:     "shared",
 				Type:     schema.FieldTypeBool,
-				Required: true,
+				Required: false,
 				Unique:   false,
 			},
 			&schema.SchemaField{
