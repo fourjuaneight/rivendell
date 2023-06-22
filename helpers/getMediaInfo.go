@@ -243,22 +243,22 @@ func getDirector(category string, id string) (string, error) {
 	return strings.Join(creators, ", "), nil
 }
 
-func GetTMDBInfo(url string) (CleanMedia, error) {
+func GetMediaInfo(url string) (CleanMedia, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo]%w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]%w", err)
 	}
 
 	data, err := parseTMDBURL(url)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo]%w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]%w", err)
 	}
 
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s", data.category, data.id)
 
 	req, err := http.NewRequest("POST", endpoint, nil)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo][http.NewRequest]: %w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][http.NewRequest]: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -267,26 +267,26 @@ func GetTMDBInfo(url string) (CleanMedia, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo][client.Do]: %w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][client.Do]: %w", err)
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo][io.ReadAll]: %w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][io.ReadAll]: %w", err)
 	}
 
 	creator, err := getDirector(data.category, data.id)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo]%w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]%w", err)
 	}
 
 	if data.category == "movie" {
 		var movie Movie
 		err = json.Unmarshal(body, &movie)
 		if err != nil {
-			return CleanMedia{}, fmt.Errorf("[GetTMDBInfo][json.Unmarshal]: %w", err)
+			return CleanMedia{}, fmt.Errorf("[GetMediaInfo][json.Unmarshal]: %w", err)
 		}
 
 		year := movie.ReleaseDate[:4]
@@ -303,7 +303,7 @@ func GetTMDBInfo(url string) (CleanMedia, error) {
 	var tv TVShow
 	err = json.Unmarshal(body, &tv)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetTMDBInfo][json.Unmarshal]: %w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][json.Unmarshal]: %w", err)
 	}
 
 	year := tv.FirstAirDate[:4]
