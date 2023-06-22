@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2023-06-22
+
+### Bug Fixes
+
+- [Remove incorrect error return.](https://github.com/fourjuaneight/rivendell/commit/7a2d55f1056497f20ea72daf9bed428b369f45dc)
+- [Add missing keys.](https://github.com/fourjuaneight/rivendell/commit/d61d9706d81a312a2cec2d6dc97253e1e1f1890a)
+- [Minor typing corrections.](https://github.com/fourjuaneight/rivendell/commit/b73b5f33091b1181f320a1482b1857b43c83c764)
+
+### Features
+
+- [Add mangadex api helper method.](https://github.com/fourjuaneight/rivendell/commit/b3e2aef430f2056ce5689a27203cf4ec4975d852)
+- [Add scryfall api helper method.](https://github.com/fourjuaneight/rivendell/commit/9c7366e61a961707a7126af014291cd1996673d8)
+- [Add youtube api helper method.](https://github.com/fourjuaneight/rivendell/commit/725ecc090e4ddd6caceb4be93ca4a66a6c5401e6)
+- [Add tmdb api helper method.](https://github.com/fourjuaneight/rivendell/commit/2b7ac4d33d86abd237157c76a0d546fa0fff6416)
+
+### Miscellaneous Tasks
+
+- [Update Changelog.](https://github.com/fourjuaneight/rivendell/commit/bf8ca47b38d18d2dca9440e0f16262d65053b6a8)
+- [Minor syntax optimizations.](https://github.com/fourjuaneight/rivendell/commit/e5a00ae4bce3cbd7014aea5d85b8f0d02dffe223)
+- [Update pocketbase.](https://github.com/fourjuaneight/rivendell/commit/4bbc16a800434875498b020a3a3655825a3857cc)
+- [Update type name to prevent conflicts.](https://github.com/fourjuaneight/rivendell/commit/3b1cf5735bfb018e2b712de798e664b4b2e1dc54)
+- [Update method name.](https://github.com/fourjuaneight/rivendell/commit/a5f3b3df8dee991518d6046f57470eb903bbc5d7)
+- [Update dependencies.](https://github.com/fourjuaneight/rivendell/commit/ddc0c0a71b3c6a50dc80698af13b5714e7da5e28)
+
 ## [1.3.0] - 2023-06-06
 
 ### Features
