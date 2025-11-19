@@ -5,8 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/pocketbase/pocketbase/models"
-	"github.com/pocketbase/pocketbase/models/schema"
+	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
@@ -30,555 +29,225 @@ func getMetaID() string {
 	return META_ID
 }
 
-func bookmarksCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "bookmarks",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "title",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "creator",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "url",
-				Type:     schema.FieldTypeUrl,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "archive",
-				Type:     schema.FieldTypeUrl,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "tags",
-				Type:     schema.FieldTypeRelation,
-				Required: true,
-				Options: &schema.RelationOptions{
-					MaxSelect:     types.Pointer(5),
-					CollectionId:  getMetaID(),
-					CascadeDelete: false,
-				},
-			},
-			&schema.SchemaField{
-				Name:     "type",
-				Type:     schema.FieldTypeSelect,
-				Required: true,
-				Unique:   false,
-				Options: &schema.SelectOptions{
-					MaxSelect: 1,
-					Values:    []string{"articles", "comics", "podcasts", "videos"},
-				},
-			},
-			&schema.SchemaField{
-				Name:     "dead",
-				Type:     schema.FieldTypeBool,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "shared",
-				Type:     schema.FieldTypeBool,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "comments",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func bookmarksCollection() *core.Collection {
+	collection := core.NewBaseCollection("bookmarks")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{
+		Name:     "title",
+		Required: true,
+	})
+	collection.Fields.Add(&core.TextField{
+		Name:     "creator",
+		Required: true,
+	})
+	collection.Fields.Add(&core.URLField{
+		Name:     "url",
+		Required: true,
+	})
+	collection.Fields.Add(&core.URLField{
+		Name: "archive",
+	})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "tags",
+		Required:      true,
+		CollectionId:  getMetaID(),
+		MaxSelect:     5,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.SelectField{
+		Name:      "type",
+		Required:  true,
+		Values:    []string{"articles", "comics", "podcasts", "videos"},
+		MaxSelect: 1,
+	})
+	collection.Fields.Add(&core.BoolField{
+		Name: "dead",
+	})
+	collection.Fields.Add(&core.BoolField{
+		Name: "shared",
+	})
+	collection.Fields.Add(&core.TextField{
+		Name: "comments",
+	})
 
 	return collection
 }
 
-func feedsCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "feeds",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "title",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "url",
-				Type:     schema.FieldTypeUrl,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "rss",
-				Type:     schema.FieldTypeUrl,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "tags",
-				Type:     schema.FieldTypeRelation,
-				Required: true,
-				Options: &schema.RelationOptions{
-					MaxSelect:     types.Pointer(5),
-					CollectionId:  getMetaID(),
-					CascadeDelete: false,
-				},
-			},
-			&schema.SchemaField{
-				Name:     "type",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-				Options: &schema.SelectOptions{
-					MaxSelect: 1,
-					Values:    []string{"podcasts", "websites", "youtube"},
-				},
-			},
-			&schema.SchemaField{
-				Name:     "dead",
-				Type:     schema.FieldTypeBool,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "shared",
-				Type:     schema.FieldTypeBool,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "comments",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func feedsCollection() *core.Collection {
+	collection := core.NewBaseCollection("feeds")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{
+		Name:     "title",
+		Required: true,
+	})
+	collection.Fields.Add(&core.URLField{
+		Name:     "url",
+		Required: true,
+	})
+	collection.Fields.Add(&core.URLField{
+		Name: "rss",
+	})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "tags",
+		Required:      true,
+		CollectionId:  getMetaID(),
+		MaxSelect:     5,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.SelectField{
+		Name:      "type",
+		Required:  true,
+		Values:    []string{"podcasts", "websites", "youtube"},
+		MaxSelect: 1,
+	})
+	collection.Fields.Add(&core.BoolField{Name: "dead"})
+	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
 }
 
-func mediaCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "media",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "title",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "creator",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "genre",
-				Type:     schema.FieldTypeRelation,
-				Required: true,
-				Options: &schema.RelationOptions{
-					MaxSelect:     types.Pointer(1),
-					CollectionId:  getMetaID(),
-					CascadeDelete: false,
-				},
-			},
-			&schema.SchemaField{
-				Name:     "year",
-				Type:     schema.FieldTypeNumber,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "rating",
-				Type:     schema.FieldTypeNumber,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "physical",
-				Type:     schema.FieldTypeBool,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "shelf",
-				Type:     schema.FieldTypeBool,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "type",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-				Options: &schema.SelectOptions{
-					MaxSelect: 1,
-					Values:    []string{"books", "games", "movies", "shows"},
-				},
-			},
-			&schema.SchemaField{
-				Name:     "shared",
-				Type:     schema.FieldTypeBool,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "comments",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func mediaCollection() *core.Collection {
+	collection := core.NewBaseCollection("media")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      true,
+		CollectionId:  getMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year", Required: true})
+	collection.Fields.Add(&core.NumberField{Name: "rating", Required: true})
+	collection.Fields.Add(&core.BoolField{Name: "physical"})
+	collection.Fields.Add(&core.BoolField{Name: "shelf"})
+	collection.Fields.Add(&core.SelectField{
+		Name:      "type",
+		Required:  true,
+		Values:    []string{"books", "games", "movies", "shows"},
+		MaxSelect: 1,
+	})
+	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
 }
 
-func musicCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "music",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "title",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "artist",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "genre",
-				Type:     schema.FieldTypeRelation,
-				Required: true,
-				Options: &schema.RelationOptions{
-					MaxSelect:     types.Pointer(1),
-					CollectionId:  getMetaID(),
-					CascadeDelete: false,
-				},
-			},
-			&schema.SchemaField{
-				Name:     "year",
-				Type:     schema.FieldTypeNumber,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "rating",
-				Type:     schema.FieldTypeNumber,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "playlist",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-		),
-	}
+func musicCollection() *core.Collection {
+	collection := core.NewBaseCollection("music")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "artist", Required: true})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      true,
+		CollectionId:  getMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year", Required: true})
+	collection.Fields.Add(&core.NumberField{Name: "rating", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "playlist", Required: true})
 
 	return collection
 }
 
-func mtgCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "mtg",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "name",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "colors",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "type",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "set",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "set_name",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "oracle_text",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "flavor_text",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "rarity",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "collector_number",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "artist",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "released_at",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "image",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "back",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func mtgCollection() *core.Collection {
+	collection := core.NewBaseCollection("mtg")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "colors"})
+	collection.Fields.Add(&core.TextField{Name: "type"})
+	collection.Fields.Add(&core.TextField{Name: "set", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "set_name", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "oracle_text"})
+	collection.Fields.Add(&core.TextField{Name: "flavor_text"})
+	collection.Fields.Add(&core.TextField{Name: "rarity", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "collector_number", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "artist", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "released_at", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "image", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "back"})
 
 	return collection
 }
 
-func recordsCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "records",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "company",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "position",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "stack",
-				Type:     schema.FieldTypeJson,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "start",
-				Type:     schema.FieldTypeDate,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "end",
-				Type:     schema.FieldTypeDate,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func recordsCollection() *core.Collection {
+	collection := core.NewBaseCollection("records")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "company", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "position"})
+	collection.Fields.Add(&core.JSONField{Name: "stack"})
+	collection.Fields.Add(&core.DateField{Name: "start", Required: true})
+	collection.Fields.Add(&core.DateField{Name: "end"})
 
 	return collection
 }
 
-func githubCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "github",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "name",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "owner",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "description",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "language",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "url",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   true,
-			},
-		),
-	}
+func githubCollection() *core.Collection {
+	collection := core.NewBaseCollection("github")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "name"})
+	collection.Fields.Add(&core.TextField{Name: "owner"})
+	collection.Fields.Add(&core.TextField{Name: "description"})
+	collection.Fields.Add(&core.TextField{Name: "language"})
+	collection.Fields.Add(&core.TextField{Name: "url", Required: true})
+	collection.AddIndex("idx_github_url_unique", true, "url", "")
 
 	return collection
 }
 
-func stackExchangeCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "stack_exchange",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "title",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "question",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "answer",
-				Type:     schema.FieldTypeText,
-				Required: false,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "tags",
-				Type:     schema.FieldTypeJson,
-				Required: false,
-				Unique:   false,
-			},
-		),
-	}
+func stackExchangeCollection() *core.Collection {
+	collection := core.NewBaseCollection("stack_exchange")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+
+	collection.Fields.Add(&core.TextField{Name: "title"})
+	collection.Fields.Add(&core.TextField{Name: "question", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "answer"})
+	collection.Fields.Add(&core.JSONField{Name: "tags"})
 
 	return collection
 }
 
-func metaCollection() *models.Collection {
-	collection := &models.Collection{
-		Name:       "meta",
-		Type:       models.CollectionTypeBase,
-		ListRule:   nil,
-		ViewRule:   types.Pointer("@request.auth.id != ''"),
-		CreateRule: types.Pointer(""),
-		UpdateRule: types.Pointer("@request.auth.id != ''"),
-		DeleteRule: nil,
-		Schema: schema.NewSchema(
-			&schema.SchemaField{
-				Name:     "name",
-				Type:     schema.FieldTypeText,
-				Required: true,
-				Unique:   false,
-			},
-			&schema.SchemaField{
-				Name:     "type",
-				Type:     schema.FieldTypeSelect,
-				Required: false,
-				Unique:   false,
-				Options: &schema.SelectOptions{
-					MaxSelect: 1,
-					Values: []string{
-						"tags",
-						"genre",
-					},
-				},
-			},
-		),
-	}
+func metaCollection() *core.Collection {
+	collection := core.NewBaseCollection("meta")
+	collection.ViewRule = types.Pointer("@request.auth.id != ''")
+	collection.CreateRule = types.Pointer("")
+	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
 
-	collection.SetId(getMetaID())
+	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
+	collection.Fields.Add(&core.SelectField{
+		Name:      "type",
+		Values:    []string{"tags", "genre"},
+		MaxSelect: 1,
+	})
+
+	collection.Id = getMetaID()
 
 	return collection
 }

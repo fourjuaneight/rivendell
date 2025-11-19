@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -9,7 +11,6 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
@@ -32,7 +33,7 @@ func archive(name string, url string, typeName string) (string, error) {
 
 func main() {
 	app := pocketbase.New()
-	collections := []*models.Collection{
+	collections := []*core.Collection{
 		bookmarksCollection(),
 		feedsCollection(),
 		mediaCollection(),
@@ -45,86 +46,90 @@ func main() {
 	}
 
 	// manually declare schemas
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
 		for _, collection := range collections {
-			existing, _ := app.Dao().FindCollectionByNameOrId(collection.Name)
+			existing, err := e.App.FindCollectionByNameOrId(collection.Name)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("[OnServe][FindCollectionByNameOrId]: %w", err)
+			}
 
 			if existing == nil {
-				if err := app.Dao().SaveCollection(collection); err != nil {
-					log.Fatal("[OnBeforeServe]: %w", err)
+				if err := e.App.Save(collection); err != nil {
+					return fmt.Errorf("[OnServe][SaveCollection]: %w", err)
 				}
 			}
 		}
 
-		return nil
+		return e.Next()
 	})
 
 	// setup migrations
-	migratecmd.MustRegister(app, app.RootCmd, &migratecmd.Options{
+	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate: true,
 	})
 
 	// set default values
-	app.OnRecordBeforeCreateRequest().Add(func(e *core.RecordCreateEvent) error {
-		record := e.Record
-		collection := record.Collection().Name
+	app.OnRecordCreateRequest("bookmarks", "feeds").BindFunc(func(e *core.RecordRequestEvent) error {
+		e.Record.Set("dead", false)
+		e.Record.Set("shared", false)
 
-		if collection == "bookmarks" || collection == "feeds" {
-			record.Set("dead", false)
-			record.Set("shared", false)
-		}
-
-		return nil
+		return e.Next()
 	})
 
-	// archive bookmarks
-	app.OnRecordAfterCreateRequest().Add(func(e *core.RecordCreateEvent) error {
-		record := e.Record
-		collection := record.Collection().Name
+	// archive bookmarks and enrich records after creation
+	app.OnRecordCreateRequest("bookmarks", "github", "stack_exchange").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := e.Next(); err != nil {
+			return err
+		}
 
-		switch collection {
+		var needsSave bool
+
+		switch e.Collection.Name {
 		case "bookmarks":
-			// archive bookmarks
-			name := record.SchemaData()["title"].(string)
-			url := record.SchemaData()["url"].(string)
-			typeName := record.SchemaData()["type"].(string)
+			name := e.Record.GetString("title")
+			url := e.Record.GetString("url")
+			typeName := e.Record.GetString("type")
 
-			archive, archiveErr := archive(name, url, typeName)
+			archiveURL, archiveErr := archive(name, url, typeName)
 			if archiveErr != nil {
-				return fmt.Errorf("[OnRecordAfterCreateRequest][archiveErr]: %w", archiveErr)
+				return fmt.Errorf("[OnRecordCreateRequest][archiveErr]: %w", archiveErr)
 			}
 
-			record.Set("archive", archive)
+			e.Record.Set("archive", archiveURL)
+			needsSave = true
 		case "github":
-			// query repository info
-			url := record.SchemaData()["url"].(string)
+			repoURL := e.Record.GetString("url")
 
-			repo, repoErr := helpers.GetRepoInfo(url)
+			repo, repoErr := helpers.GetRepoInfo(repoURL)
 			if repoErr != nil {
-				return fmt.Errorf("[OnRecordAfterCreateRequest][repoErr]: %w", repoErr)
+				return fmt.Errorf("[OnRecordCreateRequest][repoErr]: %w", repoErr)
 			}
 
-			record.Set("name", repo.Name)
-			record.Set("owner", repo.Owner)
-			record.Set("description", repo.Description)
-			record.Set("language", repo.Language)
+			e.Record.Set("name", repo.Name)
+			e.Record.Set("owner", repo.Owner)
+			e.Record.Set("description", repo.Description)
+			e.Record.Set("language", repo.Language)
+			needsSave = true
 		case "stack_exchange":
-			// query repository info
-			question := record.SchemaData()["question"].(string)
+			question := e.Record.GetString("question")
 
 			questionInfo, questionInfoErr := helpers.GetQuestionInfo(question)
 			if questionInfoErr != nil {
-				return fmt.Errorf("[OnRecordAfterCreateRequest][questionInfoErr]: %w", questionInfoErr)
+				return fmt.Errorf("[OnRecordCreateRequest][questionInfoErr]: %w", questionInfoErr)
 			}
 
-			record.Set("title", questionInfo.Title)
-			record.Set("question", questionInfo.Question)
-			record.Set("answers", questionInfo.Answer)
-			record.Set("tags", questionInfo.Tags)
-		default:
+			e.Record.Set("title", questionInfo.Title)
+			e.Record.Set("question", questionInfo.Question)
+			e.Record.Set("answers", questionInfo.Answer)
+			e.Record.Set("tags", questionInfo.Tags)
+			needsSave = true
 		}
 
-		app.Dao().SaveRecord(record)
+		if needsSave {
+			if err := e.App.Save(e.Record); err != nil {
+				return fmt.Errorf("[OnRecordCreateRequest][save]: %w", err)
+			}
+		}
 
 		return nil
 	})
