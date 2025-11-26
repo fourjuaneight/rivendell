@@ -134,11 +134,8 @@ func feedsCollection() *core.Collection {
 // - creator (text, required)
 // - genre (relation to meta, required, max 1)
 // - year (number, required)
-// - rating (number, required)
-// - physical (bool)
-// - shelf (bool)
 // - type (select: books, cds, games, movies, shows, vinyls required)
-// - shared (bool)
+// - barcode (text)
 // - comments (text)
 func mediaCollection() *core.Collection {
 	collection := core.NewBaseCollection("media")
@@ -156,45 +153,14 @@ func mediaCollection() *core.Collection {
 		CascadeDelete: false,
 	})
 	collection.Fields.Add(&core.NumberField{Name: "year", Required: true})
-	collection.Fields.Add(&core.NumberField{Name: "rating", Required: true})
-	collection.Fields.Add(&core.BoolField{Name: "physical"})
-	collection.Fields.Add(&core.BoolField{Name: "shelf"})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
 		Required:  true,
 		Values:    []string{"books", "cds", "games", "movies", "shows", "vinyls"},
 		MaxSelect: 1,
 	})
-	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
-
-	return collection
-}
-
-// - title (text, required)
-// - artist (text, required)
-// - genre (relation to meta, required, max 1)
-// - year (number, required)
-// - rating (number, required)
-// - playlist (text, required)
-func musicCollection() *core.Collection {
-	collection := core.NewBaseCollection("music")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
-
-	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
-	collection.Fields.Add(&core.TextField{Name: "artist", Required: true})
-	collection.Fields.Add(&core.RelationField{
-		Name:          "genre",
-		Required:      true,
-		CollectionId:  getMetaID(),
-		MaxSelect:     1,
-		CascadeDelete: false,
-	})
-	collection.Fields.Add(&core.NumberField{Name: "year", Required: true})
-	collection.Fields.Add(&core.NumberField{Name: "rating", Required: true})
-	collection.Fields.Add(&core.TextField{Name: "playlist", Required: true})
 
 	return collection
 }

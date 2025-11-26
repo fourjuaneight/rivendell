@@ -37,7 +37,6 @@ func main() {
 		bookmarksCollection(),
 		feedsCollection(),
 		mediaCollection(),
-		musicCollection(),
 		mtgCollection(),
 		recordsCollection(),
 		githubCollection(),
