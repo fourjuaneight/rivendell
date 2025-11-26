@@ -29,6 +29,15 @@ func getMetaID() string {
 	return META_ID
 }
 
+// - title (text, required)
+// - creator (text, required)
+// - url (url, required)
+// - archive (url)
+// - tags (relation to meta, required, max 5)
+// - type (select: articles, podcasts, videos, required)
+// - dead (bool)
+// - shared (bool)
+// - comments (text)
 func bookmarksCollection() *core.Collection {
 	collection := core.NewBaseCollection("bookmarks")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -60,7 +69,7 @@ func bookmarksCollection() *core.Collection {
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
 		Required:  true,
-		Values:    []string{"articles", "comics", "podcasts", "videos"},
+		Values:    []string{"articles", "podcasts", "videos"},
 		MaxSelect: 1,
 	})
 	collection.Fields.Add(&core.BoolField{
@@ -76,6 +85,14 @@ func bookmarksCollection() *core.Collection {
 	return collection
 }
 
+// - title (text, required)
+// - url (url, required)
+// - rss (url)
+// - tags (relation to meta, required, max 5)
+// - type (select: podcasts, websites, youtube, required)
+// - dead (bool)
+// - shared (bool)
+// - comments (text)
 func feedsCollection() *core.Collection {
 	collection := core.NewBaseCollection("feeds")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -113,6 +130,16 @@ func feedsCollection() *core.Collection {
 	return collection
 }
 
+// - title (text, required)
+// - creator (text, required)
+// - genre (relation to meta, required, max 1)
+// - year (number, required)
+// - rating (number, required)
+// - physical (bool)
+// - shelf (bool)
+// - type (select: books, cds, games, movies, shows, vinyls required)
+// - shared (bool)
+// - comments (text)
 func mediaCollection() *core.Collection {
 	collection := core.NewBaseCollection("media")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -135,7 +162,7 @@ func mediaCollection() *core.Collection {
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
 		Required:  true,
-		Values:    []string{"books", "games", "movies", "shows"},
+		Values:    []string{"books", "cds", "games", "movies", "shows", "vinyls"},
 		MaxSelect: 1,
 	})
 	collection.Fields.Add(&core.BoolField{Name: "shared"})
@@ -144,6 +171,12 @@ func mediaCollection() *core.Collection {
 	return collection
 }
 
+// - title (text, required)
+// - artist (text, required)
+// - genre (relation to meta, required, max 1)
+// - year (number, required)
+// - rating (number, required)
+// - playlist (text, required)
 func musicCollection() *core.Collection {
 	collection := core.NewBaseCollection("music")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -166,6 +199,19 @@ func musicCollection() *core.Collection {
 	return collection
 }
 
+// - name (text, required)
+// - colors (text)
+// - type (text)
+// - set (text, required)
+// - set_name (text, required)
+// - oracle_text (text)
+// - flavor_text (text)
+// - rarity (text, required)
+// - collector_number (text, required)
+// - artist (text, required)
+// - released_at (text, required)
+// - image (text, required)
+// - back (text)
 func mtgCollection() *core.Collection {
 	collection := core.NewBaseCollection("mtg")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -189,6 +235,11 @@ func mtgCollection() *core.Collection {
 	return collection
 }
 
+// - company (text, required)
+// - position (text)
+// - stack (json)
+// - start (date, required)
+// - end (date)
 func recordsCollection() *core.Collection {
 	collection := core.NewBaseCollection("records")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -204,6 +255,11 @@ func recordsCollection() *core.Collection {
 	return collection
 }
 
+// - name (text)
+// - owner (text)
+// - description (text)
+// - language (text)
+// - url (text, required, unique index)
 func githubCollection() *core.Collection {
 	collection := core.NewBaseCollection("github")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -220,6 +276,10 @@ func githubCollection() *core.Collection {
 	return collection
 }
 
+// - title (text)
+// - question (text, required)
+// - answer (text)
+// - tags (json)
 func stackExchangeCollection() *core.Collection {
 	collection := core.NewBaseCollection("stack_exchange")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
@@ -234,6 +294,8 @@ func stackExchangeCollection() *core.Collection {
 	return collection
 }
 
+// - name (text, required)
+// - type (select: tags, genre, max 1)
 func metaCollection() *core.Collection {
 	collection := core.NewBaseCollection("meta")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
