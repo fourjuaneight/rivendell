@@ -21,7 +21,7 @@ func installBin() error {
 
 // Download YT video from url.
 func YTDL(url string, name string) error {
-	err := CMD("yt-dlp", "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio:", "--merge-output-format", "mp4", "-o", name, url)
+	err := CMD("yt-dlp", "-f", "b", "--merge-output-format", "mp4", "-o", name, url)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
 			err := installBin()
