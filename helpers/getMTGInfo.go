@@ -179,10 +179,15 @@ var magicColors = map[string]string{
 	"G": "Green",
 }
 
+// escapeText replaces newline characters with their escaped equivalent (\n)
+// to ensure text can be safely stored in single-line formats or databases.
 func escapeText(text string) string {
 	return strings.ReplaceAll(text, "\n", "\\n")
 }
 
+// parseMTGURL extracts the Scryfall card ID from an oEmbed URL.
+// The oEmbed URL format is: https://scryfall.com/cards/{id}/oembed
+// Returns the extracted card ID which can be used with Scryfall's /cards/:id endpoint.
 func parseMTGURL(url string) (string, error) {
 	regex, err := regexp.Compile(`cards/([a-f0-9\-]+)/oembed`)
 	if err != nil {
@@ -197,6 +202,9 @@ func parseMTGURL(url string) (string, error) {
 	return "", fmt.Errorf("[parseMTGURL]: No matches found%w", nil)
 }
 
+// getOembedURL fetches a Scryfall card page and extracts the oEmbed URL from its HTML <head>.
+// The oEmbed URL is found in a <link> tag with rel="alternate" and type="application/json+oembed".
+// This URL contains the card's Scryfall ID needed for API requests.
 func getOembedURL(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -249,6 +257,10 @@ func getOembedURL(url string) (string, error) {
 	return f(doc), nil
 }
 
+// mapCardData transforms a full Scryfall API card response into a simplified CleanMTG struct.
+// It handles multi-faced cards by extracting data from the card_faces array when needed,
+// converts color codes (W, U, B, R, G) to full color names, and ensures all relevant
+// card properties are properly mapped according to Scryfall's Card Object specification.
 func mapCardData(data ScryfallCardData) (CleanMTG, error) {
 	var oText, fText string
 
@@ -303,6 +315,13 @@ func mapCardData(data ScryfallCardData) (CleanMTG, error) {
 	return item, nil
 }
 
+// GetMTGInfo retrieves Magic: The Gathering card information from a Scryfall card URL.
+// It performs the following steps:
+// 1. Fetches the card's HTML page and extracts the oEmbed URL
+// 2. Parses the Scryfall card ID from the oEmbed URL
+// 3. Calls the Scryfall API endpoint /cards/:id to get full card data
+// 4. Maps the API response to a simplified CleanMTG struct
+// Returns comprehensive card details including name, colors, type, set info, text, and images.
 func GetMTGInfo(url string) (CleanMTG, error) {
 	link, linkErr := getOembedURL(url)
 	if linkErr != nil {
