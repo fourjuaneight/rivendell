@@ -76,7 +76,7 @@ func main() {
 	})
 
 	// archive bookmarks and enrich records after creation
-	app.OnRecordCreateRequest("bookmarks", "github", "stack_exchange").BindFunc(func(e *core.RecordRequestEvent) error {
+	app.OnRecordCreateRequest("bookmarks", "github", "mtg", "stack_exchange").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func main() {
 
 			archiveURL, archiveErr := archive(name, url, typeName)
 			if archiveErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][archiveErr]: %w", archiveErr)
+				return fmt.Errorf("[OnRecordCreateRequest][archive]: %w", archiveErr)
 			}
 
 			e.Record.Set("archive", archiveURL)
@@ -101,7 +101,7 @@ func main() {
 
 			repo, repoErr := helpers.GetRepoInfo(repoURL)
 			if repoErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][repoErr]: %w", repoErr)
+				return fmt.Errorf("[OnRecordCreateRequest][GetRepoInfo]: %w", repoErr)
 			}
 
 			e.Record.Set("name", repo.Name)
@@ -109,12 +109,42 @@ func main() {
 			e.Record.Set("description", repo.Description)
 			e.Record.Set("language", repo.Language)
 			needsSave = true
+		case "mtg":
+			name := e.Record.GetString("name")
+			set := e.Record.GetString("set")
+			number := e.Record.GetInt("collector_number")
+
+			cardSelection, cardErr := helpers.SearchCard(name, set, number)
+			if cardErr != nil {
+				return fmt.Errorf("[OnRecordCreateRequest][SearchCard]: %w", cardErr)
+			}
+
+			// Get the first card from the selection map
+			var card helpers.MTGItem
+			for _, c := range cardSelection {
+				card = c
+				break
+			}
+
+			e.Record.Set("colors", card.Colors)
+			e.Record.Set("type", card.Type)
+			e.Record.Set("set_name", card.SetName)
+			e.Record.Set("oracle_text", card.OracleText)
+			e.Record.Set("flavor_text", card.FlavorText)
+			e.Record.Set("rarity", card.Rarity)
+			e.Record.Set("artist", card.Artist)
+			e.Record.Set("released_at", card.ReleasedAt)
+			e.Record.Set("image", card.Image)
+			if card.Back != nil {
+				e.Record.Set("back", card.Back)
+			}
+			needsSave = true
 		case "stack_exchange":
 			question := e.Record.GetString("question")
 
 			questionInfo, questionInfoErr := helpers.GetQuestionInfo(question)
 			if questionInfoErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][questionInfoErr]: %w", questionInfoErr)
+				return fmt.Errorf("[OnRecordCreateRequest][GetQuestionInfo]: %w", questionInfoErr)
 			}
 
 			e.Record.Set("title", questionInfo.Title)
