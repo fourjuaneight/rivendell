@@ -234,7 +234,7 @@ func parseMTGURL(url string) (string, error) {
 		return matches[1], nil
 	}
 
-	return "", fmt.Errorf("[parseMTGURL]: No matches found%w", nil)
+	return "", fmt.Errorf("[parseMTGURL]: no matches found")
 }
 
 // getOembedURL fetches a Scryfall card page and extracts the oEmbed URL from its HTML <head>.

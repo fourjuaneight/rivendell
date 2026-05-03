@@ -61,11 +61,11 @@ func parseSEURL(url string) (string, string, error) {
 	}
 
 	matches := regex.FindStringSubmatch(url)
-	if len(matches) == 3 {
+	if len(matches) == 4 {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", fmt.Errorf("[parseSEURL]: No matches found%w", nil)
+	return "", "", fmt.Errorf("[parseSEURL]: no matches found")
 }
 
 // DOCS: https://api.stackexchange.com/docs/questions-by-ids#order=desc&sort=activity&ids=34230208&filter=default&site=stackoverflow&run=true

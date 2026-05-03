@@ -44,7 +44,7 @@ func parseGHURL(url string) (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", fmt.Errorf("[parseGHURL]: No matches found%w", nil)
+	return "", "", fmt.Errorf("[parseGHURL]: no matches found")
 }
 
 // DOCS: https://docs.github.com/en/graphql/reference/queries#repository

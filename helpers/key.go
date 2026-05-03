@@ -9,8 +9,12 @@ import (
 
 // Get auth keys from .env file.
 func GetKeys(key string) (string, error) {
-	envPath := os.Getenv("PWD") + "/.env"
-	err := godotenv.Load(envPath)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("[GetKeys][os.Getwd]: %w", err)
+	}
+	envPath := cwd + "/.env"
+	err = godotenv.Load(envPath)
 	if err != nil {
 		return "", fmt.Errorf("[GetAuthKeys]: %w", err)
 	}
