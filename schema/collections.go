@@ -1,68 +1,56 @@
-package main
+package schema
 
 import (
 	"log"
 	"os"
+	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-func getMetaID() string {
-	path, pathErr := os.Getwd()
-	if pathErr != nil {
-		log.Fatal(pathErr)
-	}
+var (
+	metaIDOnce  sync.Once
+	cachedMetaID string
+)
 
-	envPath := path + "/.env"
-	envErr := godotenv.Load(envPath)
-	if envErr != nil {
-		log.Fatal(envErr)
-	}
+func GetMetaID() string {
+	metaIDOnce.Do(func() {
+		path, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	META_ID := os.Getenv("META_ID")
-	if META_ID == "" {
-		log.Fatalln("Please provide a Meta collection ID.")
-	}
+		if err := godotenv.Load(path + "/.env"); err != nil {
+			log.Fatal(err)
+		}
 
-	return META_ID
+		id := os.Getenv("META_ID")
+		if id == "" {
+			log.Fatalln("META_ID env var not set")
+		}
+
+		cachedMetaID = id
+	})
+
+	return cachedMetaID
 }
 
-// - title (text, required)
-// - creator (text, required)
-// - url (url, required)
-// - archive (url)
-// - tags (relation to meta, required, max 5)
-// - type (select: articles, podcasts, videos, required)
-// - dead (bool)
-// - shared (bool)
-// - comments (text)
-func bookmarksCollection() *core.Collection {
+func BookmarksCollection() *core.Collection {
 	collection := core.NewBaseCollection("bookmarks")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
 	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
 
-	collection.Fields.Add(&core.TextField{
-		Name:     "title",
-		Required: true,
-	})
-	collection.Fields.Add(&core.TextField{
-		Name:     "creator",
-		Required: true,
-	})
-	collection.Fields.Add(&core.URLField{
-		Name:     "url",
-		Required: true,
-	})
-	collection.Fields.Add(&core.URLField{
-		Name: "archive",
-	})
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "archive"})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "tags",
 		Required:      true,
-		CollectionId:  getMetaID(),
+		CollectionId:  GetMetaID(),
 		MaxSelect:     5,
 		CascadeDelete: false,
 	})
@@ -72,48 +60,26 @@ func bookmarksCollection() *core.Collection {
 		Values:    []string{"articles", "podcasts", "videos"},
 		MaxSelect: 1,
 	})
-	collection.Fields.Add(&core.BoolField{
-		Name: "dead",
-	})
-	collection.Fields.Add(&core.BoolField{
-		Name: "shared",
-	})
-	collection.Fields.Add(&core.TextField{
-		Name: "comments",
-	})
+	collection.Fields.Add(&core.BoolField{Name: "dead"})
+	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
 }
 
-// - title (text, required)
-// - url (url, required)
-// - rss (url)
-// - tags (relation to meta, required, max 5)
-// - type (select: podcasts, websites, youtube, required)
-// - dead (bool)
-// - shared (bool)
-// - comments (text)
-func feedsCollection() *core.Collection {
+func FeedsCollection() *core.Collection {
 	collection := core.NewBaseCollection("feeds")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
 	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
 
-	collection.Fields.Add(&core.TextField{
-		Name:     "title",
-		Required: true,
-	})
-	collection.Fields.Add(&core.URLField{
-		Name:     "url",
-		Required: true,
-	})
-	collection.Fields.Add(&core.URLField{
-		Name: "rss",
-	})
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "rss"})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "tags",
 		Required:      true,
-		CollectionId:  getMetaID(),
+		CollectionId:  GetMetaID(),
 		MaxSelect:     5,
 		CascadeDelete: false,
 	})
@@ -130,14 +96,7 @@ func feedsCollection() *core.Collection {
 	return collection
 }
 
-// - title (text, required)
-// - creator (text, required)
-// - genre (relation to meta, required, max 1)
-// - year (number, required)
-// - type (select: books, cds, games, movies, shows, vinyls required)
-// - barcode (text)
-// - comments (text)
-func mediaCollection() *core.Collection {
+func MediaCollection() *core.Collection {
 	collection := core.NewBaseCollection("media")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -148,7 +107,7 @@ func mediaCollection() *core.Collection {
 	collection.Fields.Add(&core.RelationField{
 		Name:          "genre",
 		Required:      true,
-		CollectionId:  getMetaID(),
+		CollectionId:  GetMetaID(),
 		MaxSelect:     1,
 		CascadeDelete: false,
 	})
@@ -165,20 +124,7 @@ func mediaCollection() *core.Collection {
 	return collection
 }
 
-// - name (text, required)
-// - colors (text)
-// - type (text)
-// - set (text, required)
-// - set_name (text)
-// - oracle_text (text)
-// - flavor_text (text)
-// - rarity (text)
-// - collector_number (text, required)
-// - artist (text)
-// - released_at (text)
-// - image (text)
-// - back (text)
-func mtgCollection() *core.Collection {
+func MtgCollection() *core.Collection {
 	collection := core.NewBaseCollection("mtg")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -201,12 +147,7 @@ func mtgCollection() *core.Collection {
 	return collection
 }
 
-// - company (text, required)
-// - position (text)
-// - stack (json)
-// - start (date, required)
-// - end (date)
-func recordsCollection() *core.Collection {
+func RecordsCollection() *core.Collection {
 	collection := core.NewBaseCollection("records")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -221,12 +162,7 @@ func recordsCollection() *core.Collection {
 	return collection
 }
 
-// - name (text)
-// - owner (text)
-// - description (text)
-// - language (text)
-// - url (text, required, unique index)
-func githubCollection() *core.Collection {
+func GithubCollection() *core.Collection {
 	collection := core.NewBaseCollection("github")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -242,11 +178,7 @@ func githubCollection() *core.Collection {
 	return collection
 }
 
-// - title (text)
-// - question (text, required)
-// - answer (text)
-// - tags (json)
-func stackExchangeCollection() *core.Collection {
+func StackExchangeCollection() *core.Collection {
 	collection := core.NewBaseCollection("stack_exchange")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -260,9 +192,7 @@ func stackExchangeCollection() *core.Collection {
 	return collection
 }
 
-// - name (text, required)
-// - type (select: tags, genre, max 1)
-func metaCollection() *core.Collection {
+func MetaCollection() *core.Collection {
 	collection := core.NewBaseCollection("meta")
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
 	collection.CreateRule = types.Pointer("")
@@ -275,7 +205,7 @@ func metaCollection() *core.Collection {
 		MaxSelect: 1,
 	})
 
-	collection.Id = getMetaID()
+	collection.Id = GetMetaID()
 
 	return collection
 }

@@ -1,12 +1,11 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 
 	"github.com/fourjuaneight/rivendell/helpers"
+	_ "github.com/fourjuaneight/rivendell/migrations"
 	"github.com/fourjuaneight/rivendell/utils"
 
 	"github.com/pocketbase/pocketbase"
@@ -33,36 +32,7 @@ func archive(name string, url string, typeName string) (string, error) {
 
 func main() {
 	app := pocketbase.New()
-	collections := []*core.Collection{
-		bookmarksCollection(),
-		feedsCollection(),
-		mediaCollection(),
-		mtgCollection(),
-		recordsCollection(),
-		githubCollection(),
-		stackExchangeCollection(),
-		metaCollection(),
-	}
 
-	// manually declare schemas
-	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		for _, collection := range collections {
-			existing, err := e.App.FindCollectionByNameOrId(collection.Name)
-			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("[OnServe][FindCollectionByNameOrId]: %w", err)
-			}
-
-			if existing == nil {
-				if err := e.App.Save(collection); err != nil {
-					return fmt.Errorf("[OnServe][SaveCollection]: %w", err)
-				}
-			}
-		}
-
-		return e.Next()
-	})
-
-	// setup migrations
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate: true,
 	})
@@ -119,7 +89,6 @@ func main() {
 				return fmt.Errorf("[OnRecordCreateRequest][SearchCard]: %w", cardErr)
 			}
 
-			// Get the first card from the selection map
 			var card helpers.MTGItem
 			for _, c := range cardSelection {
 				card = c
