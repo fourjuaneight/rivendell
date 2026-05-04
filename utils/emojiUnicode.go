@@ -9,19 +9,13 @@ var emojiRange = regexp.MustCompile(`[\x{1f300}-\x{1f5ff}\x{1f900}-\x{1f9ff}\x{1
 
 // Get the unicode code of an emoji in base 16.
 func ConvertEmoji(emojiString string) string {
-	var comp interface{}
-
-	if len(emojiString) == 1 {
-		comp = int(emojiString[0])
-	} else {
-		runeValue := []rune(emojiString)
-		comp = (int(runeValue[0])-0xd800)*0x400 + int(runeValue[1]) - 0xdc00 + 0x10000
-		if comp.(int) < 0 {
-			comp = int(runeValue[0])
-		}
+	// Original code used JavaScript surrogate-pair math (runeValue[0] + runeValue[1]),
+	// but Go []rune decodes UTF-8 directly to code points — emoji are always a single rune.
+	runeValue := []rune(emojiString)
+	if len(runeValue) == 0 {
+		return ""
 	}
-
-	return fmt.Sprintf("U+%X", comp)
+	return fmt.Sprintf("U+%X", int(runeValue[0]))
 }
 
 // Replace all emojis in a string with their unicode code in base 16.

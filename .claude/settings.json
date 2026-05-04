@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build *)",
+      "Bash(go vet *)",
+      "Bash(python3 -c ' *')",
+      "Bash(sed *)",
+      "Bash(go test *)"
+    ]
+  }
+}

@@ -7,6 +7,7 @@ Personal bookmarking and archiving database powered by [PocketBase](https://pock
 - [SCHEMA.md](SCHEMA.md) — collection definitions, field types, and constraints
 - [API.md](API.md) — how to create and query records; which fields are manual vs. auto-filled
 - [MIGRATIONS.md](MIGRATIONS.md) — how schema migrations work and how to write new ones
+- [TESTING.md](TESTING.md) — what's tested, how to run tests, and bugs found during testing
 
 ---
 
