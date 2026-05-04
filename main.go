@@ -46,7 +46,7 @@ func main() {
 	})
 
 	// archive bookmarks and enrich records after creation
-	app.OnRecordCreateRequest("bookmarks", "github", "mtg", "stack_exchange").BindFunc(func(e *core.RecordRequestEvent) error {
+	app.OnRecordCreateRequest("bookmarks", "github", "mtg").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err
 		}
@@ -107,19 +107,6 @@ func main() {
 			if card.Back != nil {
 				e.Record.Set("back", card.Back)
 			}
-			needsSave = true
-		case "stack_exchange":
-			question := e.Record.GetString("question")
-
-			questionInfo, questionInfoErr := helpers.GetQuestionInfo(question)
-			if questionInfoErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][GetQuestionInfo]: %w", questionInfoErr)
-			}
-
-			e.Record.Set("title", questionInfo.Title)
-			e.Record.Set("question", questionInfo.Question)
-			e.Record.Set("answers", questionInfo.Answer)
-			e.Record.Set("tags", questionInfo.Tags)
 			needsSave = true
 		}
 

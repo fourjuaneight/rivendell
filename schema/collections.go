@@ -178,19 +178,6 @@ func GithubCollection() *core.Collection {
 	return collection
 }
 
-func StackExchangeCollection() *core.Collection {
-	collection := core.NewBaseCollection("stack_exchange")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
-
-	collection.Fields.Add(&core.TextField{Name: "title"})
-	collection.Fields.Add(&core.TextField{Name: "question", Required: true})
-	collection.Fields.Add(&core.TextField{Name: "answer"})
-	collection.Fields.Add(&core.JSONField{Name: "tags"})
-
-	return collection
-}
 
 func MetaCollection() *core.Collection {
 	collection := core.NewBaseCollection("meta")

@@ -106,19 +106,6 @@ Saved GitHub repositories. Enriched from GitHub API on create.
 
 ---
 
-## stack_exchange
-
-Saved Stack Exchange Q&A threads. Scraped on create.
-
-| Field      | Type | Required | Constraints       |
-|------------|------|----------|-------------------|
-| `question` | text | yes      | URL on create     |
-| `title`    | text | no       | Set automatically |
-| `answer`   | text | no       | Set automatically |
-| `tags`     | json | no       | Set automatically |
-
----
-
 ## records
 
 Work history / employment records.
