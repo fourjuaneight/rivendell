@@ -33,11 +33,15 @@ func archive(name string, url string, typeName string) (string, error) {
 func main() {
 	app := pocketbase.New()
 
+	// Automigrate: on startup, applies any pending migrations in the migrations/ package.
+	// In dev mode (binary built from source), also auto-generates migration files when
+	// collections are modified via the admin UI.
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
 		Automigrate: true,
 	})
 
-	// set default values
+	// OnRecordCreateRequest hooks are middleware for the create API endpoint.
+	// Fields set on e.Record before calling e.Next() are included in the initial DB insert.
 	app.OnRecordCreateRequest("bookmarks", "feeds").BindFunc(func(e *core.RecordRequestEvent) error {
 		e.Record.Set("dead", false)
 		e.Record.Set("shared", false)
@@ -45,7 +49,8 @@ func main() {
 		return e.Next()
 	})
 
-	// archive bookmarks and enrich records after creation
+	// e.Next() is called first so the record is saved before the external API calls.
+	// Enriched fields are written back via a second app.Save() after e.Next() returns.
 	app.OnRecordCreateRequest("bookmarks", "github", "mtg").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err

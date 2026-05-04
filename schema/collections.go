@@ -39,8 +39,10 @@ func GetMetaID() string {
 
 func BookmarksCollection() *core.Collection {
 	collection := core.NewBaseCollection("bookmarks")
+	// Access rules are filter expressions evaluated per request.
+	// nil = deny all, types.Pointer("") = allow all, expression = conditional.
 	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
+	collection.CreateRule = types.Pointer("") // open: allows unauthenticated creates
 	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
@@ -48,11 +50,10 @@ func BookmarksCollection() *core.Collection {
 	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
 	collection.Fields.Add(&core.URLField{Name: "archive"})
 	collection.Fields.Add(&core.RelationField{
-		Name:          "tags",
-		Required:      true,
-		CollectionId:  GetMetaID(),
-		MaxSelect:     5,
-		CascadeDelete: false,
+		Name:         "tags",
+		Required:     true,
+		CollectionId: GetMetaID(), // RelationField requires the target collection's ID, not its name
+		MaxSelect:    5,
 	})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
@@ -192,6 +193,8 @@ func MetaCollection() *core.Collection {
 		MaxSelect: 1,
 	})
 
+	// Pin the collection ID so RelationField.CollectionId in other collections can
+	// reference it by a known value at schema definition time, before meta is created.
 	collection.Id = GetMetaID()
 
 	return collection
