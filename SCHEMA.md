@@ -4,8 +4,6 @@ All collections use PocketBase's built-in `id`, `created`, and `updated` fields.
 
 Access rules unless noted: view/update require auth (`@request.auth.id != ''`), create is open.
 
----
-
 ## meta
 
 Lookup table for tags and genres. Referenced by `bookmarks`, `feeds`, and `media`.
@@ -16,8 +14,6 @@ Lookup table for tags and genres. Referenced by `bookmarks`, `feeds`, and `media
 |--------|--------|----------|--------------------------|
 | `name` | text   | yes      |                          |
 | `type` | select | no       | `tags`, `genre` (max: 1) |
-
----
 
 ## bookmarks
 
@@ -35,8 +31,6 @@ Saved articles, podcasts, and videos. Archived to Backblaze B2 on create.
 | `shared`   | bool     | no       | Defaults to `false` on create        |
 | `comments` | text     | no       |                                      |
 
----
-
 ## feeds
 
 RSS/podcast/YouTube feeds.
@@ -52,8 +46,6 @@ RSS/podcast/YouTube feeds.
 | `shared`   | bool     | no       | Defaults to `false` on create            |
 | `comments` | text     | no       |                                          |
 
----
-
 ## media
 
 Physical/digital media collection (books, music, games, film).
@@ -67,8 +59,6 @@ Physical/digital media collection (books, music, games, film).
 | `type`     | select   | yes      | `books`, `cds`, `games`, `movies`, `shows`, `vinyls` (max: 1) |
 | `barcode`  | text     | no       |                                                      |
 | `comments` | text     | no       |                                                      |
-
----
 
 ## mtg
 
@@ -90,8 +80,6 @@ Magic: The Gathering card collection. Enriched from Scryfall on create.
 | `image`            | text   | no       | Set automatically from Scryfall   |
 | `back`             | text   | no       | Double-faced cards only           |
 
----
-
 ## github
 
 Saved GitHub repositories. Enriched from GitHub API on create.
@@ -103,8 +91,6 @@ Saved GitHub repositories. Enriched from GitHub API on create.
 | `owner`       | text | no       | Set automatically        |
 | `description` | text | no       | Set automatically        |
 | `language`    | text | no       | Set automatically        |
-
----
 
 ## records
 
