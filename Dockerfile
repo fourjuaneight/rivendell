@@ -1,18 +1,21 @@
-FROM golang:alpine as builder
+FROM golang:1.25-alpine AS builder
 
-# Config
-ENV PATH="/usr/local/go/bin:${PATH}"
-
-# Install dependencies
-RUN apk update && apk upgrade && \
-  apk add --no-cache bash git openssh \
-  && rm -rf /var/cache/* \
-  && mkdir /var/cache/apk
-
-# Download App Dependencies
+RUN apk add --no-cache git
 WORKDIR /app
-COPY . /app
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go mod tidy
+COPY . .
+RUN go build -o rivendell .
+
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates ffmpeg tzdata wget \
+    && wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+         -O /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp
+
+WORKDIR /app
+COPY --from=builder /app/rivendell .
 
 EXPOSE 8090
+CMD ["./rivendell", "serve", "--http=0.0.0.0:8090"]

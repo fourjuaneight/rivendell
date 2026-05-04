@@ -10,3 +10,5 @@ Dockerfile.prod
 .vscode
 bin
 pkg
+.env
+pb_data
