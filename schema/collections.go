@@ -120,7 +120,7 @@ func MediaCollection() *core.Collection {
 		MaxSelect: 1,
 	})
 	collection.Fields.Add(&core.TextField{Name: "barcode"})
-	collection.Fields.Add(&core.NumberField{Name: "tmdb_id"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection

@@ -176,12 +176,13 @@ type TypeData struct {
 }
 
 type CleanMedia struct {
-	Title   string
-	Creator string
-	Genre   string
-	Year    string
-	Type    string
-	TmdbID  int
+	Title    string
+	Creator  string
+	Genre    string
+	Year     string
+	Type     string
+	TmdbID   int
+	CoverURL string
 }
 
 func parseTMDBURL(url string) (TypeData, error) {
@@ -293,13 +294,19 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 
 		year := movie.ReleaseDate[:4]
 
+		coverURL := ""
+		if movie.PosterPath != "" {
+			coverURL = "https://image.tmdb.org/t/p/original" + movie.PosterPath
+		}
+
 		return CleanMedia{
-			Title:   movie.Title,
-			Creator: creator,
-			Genre:   "",
-			Year:    year,
-			Type:    "movie",
-			TmdbID:  movie.ID,
+			Title:    movie.Title,
+			Creator:  creator,
+			Genre:    "",
+			Year:     year,
+			Type:     "movie",
+			TmdbID:   movie.ID,
+			CoverURL: coverURL,
 		}, nil
 	}
 
@@ -311,26 +318,33 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 
 	year := tv.FirstAirDate[:4]
 
+	coverURL := ""
+	if tv.PosterPath != "" {
+		coverURL = "https://image.tmdb.org/t/p/original" + tv.PosterPath
+	}
+
 	return CleanMedia{
-		Title:   tv.Name,
-		Creator: creator,
-		Genre:   "",
-		Year:    year,
-		Type:    "tv",
-		TmdbID:  tv.ID,
+		Title:    tv.Name,
+		Creator:  creator,
+		Genre:    "",
+		Year:     year,
+		Type:     "tv",
+		TmdbID:   tv.ID,
+		CoverURL: coverURL,
 	}, nil
 }
 
 type searchResult struct {
 	Results []struct {
-		ID int `json:"id"`
+		ID         int    `json:"id"`
+		PosterPath string `json:"poster_path"`
 	} `json:"results"`
 }
 
-func SearchMedia(title string, year int, mediaType string) (int, error) {
+func SearchMedia(title string, year int, mediaType string) (string, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {
-		return 0, fmt.Errorf("[SearchMedia]%w", err)
+		return "", fmt.Errorf("[SearchMedia]%w", err)
 	}
 
 	category := "movie"
@@ -347,7 +361,7 @@ func SearchMedia(title string, year int, mediaType string) (int, error) {
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return 0, fmt.Errorf("[SearchMedia][http.NewRequest]: %w", err)
+		return "", fmt.Errorf("[SearchMedia][http.NewRequest]: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -355,23 +369,28 @@ func SearchMedia(title string, year int, mediaType string) (int, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("[SearchMedia][client.Do]: %w", err)
+		return "", fmt.Errorf("[SearchMedia][client.Do]: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, fmt.Errorf("[SearchMedia][io.ReadAll]: %w", err)
+		return "", fmt.Errorf("[SearchMedia][io.ReadAll]: %w", err)
 	}
 
 	var results searchResult
 	if err = json.Unmarshal(body, &results); err != nil {
-		return 0, fmt.Errorf("[SearchMedia][json.Unmarshal]: %w", err)
+		return "", fmt.Errorf("[SearchMedia][json.Unmarshal]: %w", err)
 	}
 
 	if len(results.Results) == 0 {
-		return 0, fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
+		return "", fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
 	}
 
-	return results.Results[0].ID, nil
+	coverURL := ""
+	if results.Results[0].PosterPath != "" {
+		coverURL = "https://image.tmdb.org/t/p/original" + results.Results[0].PosterPath
+	}
+
+	return coverURL, nil
 }

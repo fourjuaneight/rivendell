@@ -115,17 +115,20 @@ func main() {
 			needsSave = true
 		case "media":
 			mediaType := e.Record.GetString("type")
+
 			if mediaType == "movies" || mediaType == "shows" {
 				title := e.Record.GetString("title")
 				year := e.Record.GetInt("year")
 
-				tmdbID, searchErr := helpers.SearchMedia(title, year, mediaType)
+				coverURL, searchErr := helpers.SearchMedia(title, year, mediaType)
 				if searchErr != nil {
 					return fmt.Errorf("[OnRecordCreateRequest][SearchMedia]: %w", searchErr)
 				}
 
-				e.Record.Set("tmdb_id", tmdbID)
-				needsSave = true
+				if coverURL != "" {
+					e.Record.Set("cover", coverURL)
+					needsSave = true
+				}
 			}
 		}
 
