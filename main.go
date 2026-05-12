@@ -51,7 +51,7 @@ func main() {
 
 	// e.Next() is called first so the record is saved before the external API calls.
 	// Enriched fields are written back via a second app.Save() after e.Next() returns.
-	app.OnRecordCreateRequest("bookmarks", "github", "mtg").BindFunc(func(e *core.RecordRequestEvent) error {
+	app.OnRecordCreateRequest("bookmarks", "github", "mtg", "media").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err
 		}
@@ -113,6 +113,20 @@ func main() {
 				e.Record.Set("back", card.Back)
 			}
 			needsSave = true
+		case "media":
+			mediaType := e.Record.GetString("type")
+			if mediaType == "movies" || mediaType == "shows" {
+				title := e.Record.GetString("title")
+				year := e.Record.GetInt("year")
+
+				tmdbID, searchErr := helpers.SearchMedia(title, year, mediaType)
+				if searchErr != nil {
+					return fmt.Errorf("[OnRecordCreateRequest][SearchMedia]: %w", searchErr)
+				}
+
+				e.Record.Set("tmdb_id", tmdbID)
+				needsSave = true
+			}
 		}
 
 		if needsSave {

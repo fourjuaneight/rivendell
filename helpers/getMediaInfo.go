@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"regexp"
 	"strings"
 )
@@ -180,6 +181,7 @@ type CleanMedia struct {
 	Genre   string
 	Year    string
 	Type    string
+	TmdbID  int
 }
 
 func parseTMDBURL(url string) (TypeData, error) {
@@ -297,6 +299,7 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 			Genre:   "",
 			Year:    year,
 			Type:    "movie",
+			TmdbID:  movie.ID,
 		}, nil
 	}
 
@@ -314,5 +317,61 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 		Genre:   "",
 		Year:    year,
 		Type:    "tv",
+		TmdbID:  tv.ID,
 	}, nil
+}
+
+type searchResult struct {
+	Results []struct {
+		ID int `json:"id"`
+	} `json:"results"`
+}
+
+func SearchMedia(title string, year int, mediaType string) (int, error) {
+	token, err := GetKeys("TMDB_KEY")
+	if err != nil {
+		return 0, fmt.Errorf("[SearchMedia]%w", err)
+	}
+
+	category := "movie"
+	yearParam := "primary_release_year"
+	if mediaType == "shows" {
+		category = "tv"
+		yearParam = "first_air_date_year"
+	}
+
+	endpoint := fmt.Sprintf(
+		"https://api.themoviedb.org/3/search/%s?query=%s&%s=%d",
+		category, neturl.QueryEscape(title), yearParam, year,
+	)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return 0, fmt.Errorf("[SearchMedia][http.NewRequest]: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("[SearchMedia][client.Do]: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("[SearchMedia][io.ReadAll]: %w", err)
+	}
+
+	var results searchResult
+	if err = json.Unmarshal(body, &results); err != nil {
+		return 0, fmt.Errorf("[SearchMedia][json.Unmarshal]: %w", err)
+	}
+
+	if len(results.Results) == 0 {
+		return 0, fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
+	}
+
+	return results.Results[0].ID, nil
 }
