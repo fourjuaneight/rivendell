@@ -30,6 +30,82 @@ func archive(name string, url string, typeName string) (string, error) {
 	return archiveUrl, nil
 }
 
+func enrichBookmarks(r *core.Record) (bool, error) {
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), r.GetString("type"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichBookmarks]: %w", err)
+	}
+
+	r.Set("archive", archiveURL)
+	return true, nil
+}
+
+func enrichGithub(r *core.Record) (bool, error) {
+	repo, err := helpers.GetRepoInfo(r.GetString("url"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichGithub]: %w", err)
+	}
+
+	r.Set("name", repo.Name)
+	r.Set("owner", repo.Owner)
+	r.Set("description", repo.Description)
+	r.Set("language", repo.Language)
+	return true, nil
+}
+
+func enrichMtg(r *core.Record) (bool, error) {
+	cardSelection, err := helpers.SearchCard(r.GetString("name"), r.GetString("set"), r.GetInt("collector_number"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichMtg]: %w", err)
+	}
+
+	var card helpers.MTGItem
+	for _, c := range cardSelection {
+		card = c
+		break
+	}
+
+	r.Set("colors", card.Colors)
+	r.Set("type", card.Type)
+	r.Set("set_name", card.SetName)
+	r.Set("oracle_text", card.OracleText)
+	r.Set("flavor_text", card.FlavorText)
+	r.Set("rarity", card.Rarity)
+	r.Set("artist", card.Artist)
+	r.Set("released_at", card.ReleasedAt)
+	r.Set("image", card.Image)
+	if card.Back != nil {
+		r.Set("back", card.Back)
+	}
+	return true, nil
+}
+
+func enrichMedia(r *core.Record) (bool, error) {
+	switch r.GetString("type") {
+	case "movies", "shows":
+		coverURL, err := helpers.SearchMedia(r.GetString("title"), r.GetInt("year"), r.GetString("type"))
+		if err != nil {
+			return false, fmt.Errorf("[enrichMedia]: %w", err)
+		}
+		if coverURL != "" {
+			r.Set("cover", coverURL)
+			return true, nil
+		}
+	case "books":
+		if isbn := r.GetString("barcode"); isbn != "" {
+			book, err := helpers.GetBookInfo(isbn)
+			if err != nil {
+				return false, fmt.Errorf("[enrichMedia]: %w", err)
+			}
+			if book.CoverURL != "" {
+				r.Set("cover", book.CoverURL)
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 func main() {
 	app := pocketbase.New()
 
@@ -56,80 +132,21 @@ func main() {
 			return err
 		}
 
-		var needsSave bool
+		enrichers := map[string]func(*core.Record) (bool, error){
+			"bookmarks": enrichBookmarks,
+			"github":    enrichGithub,
+			"mtg":       enrichMtg,
+			"media":     enrichMedia,
+		}
 
-		switch e.Collection.Name {
-		case "bookmarks":
-			name := e.Record.GetString("title")
-			url := e.Record.GetString("url")
-			typeName := e.Record.GetString("type")
+		enrich, ok := enrichers[e.Collection.Name]
+		if !ok {
+			return nil
+		}
 
-			archiveURL, archiveErr := archive(name, url, typeName)
-			if archiveErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][archive]: %w", archiveErr)
-			}
-
-			e.Record.Set("archive", archiveURL)
-			needsSave = true
-		case "github":
-			repoURL := e.Record.GetString("url")
-
-			repo, repoErr := helpers.GetRepoInfo(repoURL)
-			if repoErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][GetRepoInfo]: %w", repoErr)
-			}
-
-			e.Record.Set("name", repo.Name)
-			e.Record.Set("owner", repo.Owner)
-			e.Record.Set("description", repo.Description)
-			e.Record.Set("language", repo.Language)
-			needsSave = true
-		case "mtg":
-			name := e.Record.GetString("name")
-			set := e.Record.GetString("set")
-			number := e.Record.GetInt("collector_number")
-
-			cardSelection, cardErr := helpers.SearchCard(name, set, number)
-			if cardErr != nil {
-				return fmt.Errorf("[OnRecordCreateRequest][SearchCard]: %w", cardErr)
-			}
-
-			var card helpers.MTGItem
-			for _, c := range cardSelection {
-				card = c
-				break
-			}
-
-			e.Record.Set("colors", card.Colors)
-			e.Record.Set("type", card.Type)
-			e.Record.Set("set_name", card.SetName)
-			e.Record.Set("oracle_text", card.OracleText)
-			e.Record.Set("flavor_text", card.FlavorText)
-			e.Record.Set("rarity", card.Rarity)
-			e.Record.Set("artist", card.Artist)
-			e.Record.Set("released_at", card.ReleasedAt)
-			e.Record.Set("image", card.Image)
-			if card.Back != nil {
-				e.Record.Set("back", card.Back)
-			}
-			needsSave = true
-		case "media":
-			mediaType := e.Record.GetString("type")
-
-			if mediaType == "movies" || mediaType == "shows" {
-				title := e.Record.GetString("title")
-				year := e.Record.GetInt("year")
-
-				coverURL, searchErr := helpers.SearchMedia(title, year, mediaType)
-				if searchErr != nil {
-					return fmt.Errorf("[OnRecordCreateRequest][SearchMedia]: %w", searchErr)
-				}
-
-				if coverURL != "" {
-					e.Record.Set("cover", coverURL)
-					needsSave = true
-				}
-			}
+		needsSave, err := enrich(e.Record)
+		if err != nil {
+			return fmt.Errorf("[OnRecordCreateRequest]: %w", err)
 		}
 
 		if needsSave {
