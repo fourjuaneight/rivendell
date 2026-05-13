@@ -232,3 +232,55 @@ func TestEscapeText(t *testing.T) {
 		})
 	}
 }
+
+func TestParseDiscogsTitle(t *testing.T) {
+	tests := []struct {
+		name       string
+		title      string
+		wantArtist string
+		wantAlbum  string
+	}{
+		{
+			name:       "standard artist - album format",
+			title:      "Radiohead - OK Computer",
+			wantArtist: "Radiohead",
+			wantAlbum:  "OK Computer",
+		},
+		{
+			name:       "artist with dash in name",
+			title:      "Nine Inch Nails - The Downward Spiral",
+			wantArtist: "Nine Inch Nails",
+			wantAlbum:  "The Downward Spiral",
+		},
+		{
+			name:       "album with dash in title",
+			title:      "Miles Davis - Kind Of Blue - Legacy Edition",
+			wantArtist: "Miles Davis",
+			wantAlbum:  "Kind Of Blue - Legacy Edition",
+		},
+		{
+			name:       "no separator returns empty artist",
+			title:      "SomeAlbumWithNoArtist",
+			wantArtist: "",
+			wantAlbum:  "SomeAlbumWithNoArtist",
+		},
+		{
+			name:       "empty string",
+			title:      "",
+			wantArtist: "",
+			wantAlbum:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotArtist, gotAlbum := parseDiscogsTitle(tt.title)
+			if gotArtist != tt.wantArtist {
+				t.Errorf("artist = %q, want %q", gotArtist, tt.wantArtist)
+			}
+			if gotAlbum != tt.wantAlbum {
+				t.Errorf("album = %q, want %q", gotAlbum, tt.wantAlbum)
+			}
+		})
+	}
+}
