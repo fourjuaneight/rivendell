@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 
 	"github.com/fourjuaneight/rivendell/helpers"
 	_ "github.com/fourjuaneight/rivendell/migrations"
@@ -80,48 +82,73 @@ func enrichMtg(r *core.Record) (bool, error) {
 	return true, nil
 }
 
+func downloadCover(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("[downloadCover][http.Get]: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("[downloadCover][io.ReadAll]: %w", err)
+	}
+
+	return data, nil
+}
+
 func enrichMedia(r *core.Record) (bool, error) {
-	switch r.GetString("type") {
+	title := r.GetString("title")
+	mediaType := r.GetString("type")
+
+	var coverURL string
+
+	switch mediaType {
 	case "movies", "shows":
-		coverURL, err := helpers.SearchMedia(r.GetString("title"), r.GetInt("year"), r.GetString("type"))
+		url, err := helpers.SearchMedia(title, r.GetInt("year"), mediaType)
 		if err != nil {
 			return false, fmt.Errorf("[enrichMedia]: %w", err)
 		}
-		if coverURL != "" {
-			r.Set("cover", coverURL)
-			return true, nil
-		}
+		coverURL = url
 	case "books":
 		if isbn := r.GetString("barcode"); isbn != "" {
 			book, err := helpers.GetBookInfo(isbn)
 			if err != nil {
 				return false, fmt.Errorf("[enrichMedia]: %w", err)
 			}
-			if book.CoverURL != "" {
-				r.Set("cover", book.CoverURL)
-				return true, nil
-			}
+			coverURL = book.CoverURL
 		}
 	case "games":
-		game, err := helpers.GetGameInfo(r.GetString("title"), r.GetInt("year"))
+		game, err := helpers.GetGameInfo(title, r.GetInt("year"))
 		if err != nil {
 			return false, fmt.Errorf("[enrichMedia]: %w", err)
 		}
-		if game.CoverURL != "" {
-			r.Set("cover", game.CoverURL)
-			return true, nil
-		}
+		coverURL = game.CoverURL
 	case "cds", "vinyls":
-		music, err := helpers.GetMusicInfo(r.GetString("title"), r.GetString("creator"), r.GetInt("year"))
+		music, err := helpers.GetMusicInfo(title, r.GetString("creator"), r.GetInt("year"))
 		if err != nil {
 			return false, fmt.Errorf("[enrichMedia]: %w", err)
 		}
-		if music.CoverURL != "" {
-			r.Set("cover", music.CoverURL)
-			return true, nil
-		}
+		coverURL = music.CoverURL
 	}
-	return false, nil
+
+	if coverURL == "" {
+		return false, nil
+	}
+
+	imageData, err := downloadCover(coverURL)
+	if err != nil {
+		return false, fmt.Errorf("[enrichMedia]: %w", err)
+	}
+
+	path := fmt.Sprintf("Media/%s/%s.jpeg", utils.ToCapitalized(mediaType), utils.FileNameFmt(title))
+	b2URL, err := helpers.UploadToB2(imageData, path, "image/jpeg")
+	if err != nil {
+		return false, fmt.Errorf("[enrichMedia]: %w", err)
+	}
+
+	r.Set("cover", b2URL)
+	return true, nil
 }
 
 func main() {
