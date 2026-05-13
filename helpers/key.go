@@ -23,20 +23,28 @@ func GetKeys(key string) (string, error) {
 	APP_KEY := os.Getenv("B2_APP_KEY")
 	BUCKET_ID := os.Getenv("B2_BUCKET_ID")
 	BUCKET_NAME := os.Getenv("B2_BUCKET_NAME")
+	DISCOGS_TOKEN := os.Getenv("DISCOGS_TOKEN")
 	GH_TOKEN := os.Getenv("GH_TOKEN")
 	GH_USERNAME := os.Getenv("GH_USERNAME")
+	META_ID := os.Getenv("META_ID")
 	TMDB_KEY := os.Getenv("TMDB_KEY")
+	TWITCH_CLIENT_ID := os.Getenv("TWITCH_CLIENT_ID")
+	TWITCH_CLIENT_SECRET := os.Getenv("TWITCH_CLIENT_SECRET")
 	YOUTUBE_KEY := os.Getenv("YOUTUBE_KEY")
 
 	keys := map[string]string{
-		"APP_KEY_ID":  APP_KEY_ID,
-		"APP_KEY":     APP_KEY,
-		"BUCKET_ID":   BUCKET_ID,
-		"BUCKET_NAME": BUCKET_NAME,
-		"GH_TOKEN":    GH_TOKEN,
-		"GH_USERNAME": GH_USERNAME,
-		"TMDB_KEY":    TMDB_KEY,
-		"YOUTUBE_KEY": YOUTUBE_KEY,
+		"APP_KEY_ID":         APP_KEY_ID,
+		"APP_KEY":            APP_KEY,
+		"BUCKET_ID":          BUCKET_ID,
+		"BUCKET_NAME":        BUCKET_NAME,
+		"DISCOGS_TOKEN":      DISCOGS_TOKEN,
+		"GH_TOKEN":           GH_TOKEN,
+		"GH_USERNAME":        GH_USERNAME,
+		"META_ID":            META_ID,
+		"TMDB_KEY":           TMDB_KEY,
+		"TWITCH_CLIENT_ID":   TWITCH_CLIENT_ID,
+		"TWITCH_CLIENT_SECRET": TWITCH_CLIENT_SECRET,
+		"YOUTUBE_KEY":        YOUTUBE_KEY,
 	}
 
 	return keys[key], nil

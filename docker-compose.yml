@@ -44,8 +44,6 @@ services:
     volumes:
       - ./.env:/app/.env:ro
       - ./pb_data:/app/pb_data
-    environment:
-      META_ID: "${META_ID}"
     env_file: .env
     depends_on:
       tailscale:
