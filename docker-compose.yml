@@ -45,6 +45,12 @@ services:
       - ./.env:/app/.env:ro
       - ./pb_data:/app/pb_data
     env_file: .env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/api/health"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     depends_on:
       tailscale:
         condition: service_healthy
