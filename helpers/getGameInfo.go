@@ -16,6 +16,7 @@ const (
 	twitchTokenURL   = "https://id.twitch.tv/oauth2/token"
 )
 
+// igdbToken is cached in memory across requests. Mutex guards concurrent refreshes.
 var (
 	igdbTokenMu  sync.Mutex
 	igdbToken    string
@@ -100,6 +101,7 @@ func getIGDBToken() (string, error) {
 	}
 
 	igdbToken = tokenResp.AccessToken
+	// 5-min safety margin
 	igdbTokenExp = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
 
 	return igdbToken, nil
@@ -119,6 +121,7 @@ func GetGameInfo(title string, year int) (CleanGame, error) {
 	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 	startOfNextYear := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
+	// version_parent = null excludes DLCs and special editions, returning only base games.
 	query := strings.TrimSpace(fmt.Sprintf(`
 search "%s";
 fields name,cover.image_id,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date;

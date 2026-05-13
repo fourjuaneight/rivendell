@@ -134,8 +134,7 @@ func main() {
 		Automigrate: true,
 	})
 
-	// OnRecordCreateRequest hooks are middleware for the create API endpoint.
-	// Fields set on e.Record before calling e.Next() are included in the initial DB insert.
+	// Pre-save hook: fields set before e.Next() are included in the initial DB insert.
 	app.OnRecordCreateRequest("bookmarks", "feeds").BindFunc(func(e *core.RecordRequestEvent) error {
 		e.Record.Set("dead", false)
 		e.Record.Set("shared", false)
@@ -143,13 +142,16 @@ func main() {
 		return e.Next()
 	})
 
-	// e.Next() is called first so the record is saved before the external API calls.
-	// Enriched fields are written back via a second app.Save() after e.Next() returns.
+	// Post-save hook: e.Next() commits the record first, then external API calls enrich it
+	// and a second app.Save() writes the additional fields back. Separate from the pre-save
+	// hook because the API calls are fallible and shouldn't block the initial insert.
 	app.OnRecordCreateRequest("bookmarks", "github", "mtg", "media").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err
 		}
 
+		// Dispatch table maps collection name to its enrichment function.
+		// Each enricher sets fields on the record and returns true if a save is needed.
 		enrichers := map[string]func(*core.Record) (bool, error){
 			"bookmarks": enrichBookmarks,
 			"github":    enrichGithub,

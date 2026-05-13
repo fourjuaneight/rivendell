@@ -339,6 +339,8 @@ type searchResult struct {
 	} `json:"results"`
 }
 
+// SearchMedia searches TMDB by title/year and returns the cover URL of the first result.
+// Used by the create hook. GetMediaInfo is available for URL-based full detail lookups.
 func SearchMedia(title string, year int, mediaType string) (string, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {

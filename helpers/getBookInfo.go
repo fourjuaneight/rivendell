@@ -73,6 +73,7 @@ func GetBookInfo(isbn string) (CleanBook, error) {
 		return CleanBook{}, fmt.Errorf("[GetBookInfo][json.Unmarshal]: %w", err)
 	}
 
+	// Records is a map keyed by ISBN/OLID. Extract the first (and typically only) entry.
 	var record openLibraryRecord
 	for _, r := range result.Records {
 		record = r

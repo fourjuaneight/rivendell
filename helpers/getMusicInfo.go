@@ -29,7 +29,8 @@ type CleanMusic struct {
 	CoverURL string
 }
 
-// Discogs returns titles as "Artist - Album Title". Extract album name after " - ".
+// parseDiscogsTitle splits the Discogs search result title format "Artist - Album Title"
+// into its components. Takes the first " - " separator; album may contain additional dashes.
 func parseDiscogsTitle(title string) (artist, album string) {
 	idx := strings.Index(title, " - ")
 	if idx == -1 {
@@ -48,6 +49,7 @@ func GetMusicInfo(title, artist string, year int) (CleanMusic, error) {
 	params.Set("release_title", title)
 	params.Set("artist", artist)
 	params.Set("year", fmt.Sprintf("%d", year))
+	// master = canonical release; avoids duplicate pressing-specific results
 	params.Set("type", "master")
 	params.Set("per_page", "1")
 
