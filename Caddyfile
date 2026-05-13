@@ -1,5 +1,0 @@
-data.villela.co {
-  reverse_proxy app:8090  {
-    header_down Strict-Transport-Security max-age=31536000;
-   }
-}
