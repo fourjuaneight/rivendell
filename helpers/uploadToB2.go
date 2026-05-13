@@ -82,7 +82,7 @@ func AuthTokens() (B2AuthTokens, error) {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens]%w", err)
 	}
 
-	token := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", keyID, key)))
+	token := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", keyID, key))
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.backblazeb2.com/b2api/v2/b2_authorize_account", nil)

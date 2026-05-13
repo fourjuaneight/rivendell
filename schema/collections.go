@@ -7,11 +7,10 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 var (
-	metaIDOnce  sync.Once
+	metaIDOnce   sync.Once
 	cachedMetaID string
 )
 
@@ -40,10 +39,11 @@ func GetMetaID() string {
 func BookmarksCollection() *core.Collection {
 	collection := core.NewBaseCollection("bookmarks")
 	// Access rules are filter expressions evaluated per request.
-	// nil = deny all, types.Pointer("") = allow all, expression = conditional.
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("") // open: allows unauthenticated creates
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	// nil = deny all, new(string) = allow all, expression = conditional.
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string) // open: allows unauthenticated creates
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
@@ -70,9 +70,10 @@ func BookmarksCollection() *core.Collection {
 
 func FeedsCollection() *core.Collection {
 	collection := core.NewBaseCollection("feeds")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
 	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
@@ -99,9 +100,10 @@ func FeedsCollection() *core.Collection {
 
 func MediaCollection() *core.Collection {
 	collection := core.NewBaseCollection("media")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
@@ -128,9 +130,10 @@ func MediaCollection() *core.Collection {
 
 func MtgCollection() *core.Collection {
 	collection := core.NewBaseCollection("mtg")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "colors"})
@@ -151,9 +154,10 @@ func MtgCollection() *core.Collection {
 
 func RecordsCollection() *core.Collection {
 	collection := core.NewBaseCollection("records")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "company", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "position"})
@@ -166,9 +170,10 @@ func RecordsCollection() *core.Collection {
 
 func GithubCollection() *core.Collection {
 	collection := core.NewBaseCollection("github")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "name"})
 	collection.Fields.Add(&core.TextField{Name: "owner"})
@@ -180,12 +185,12 @@ func GithubCollection() *core.Collection {
 	return collection
 }
 
-
 func MetaCollection() *core.Collection {
 	collection := core.NewBaseCollection("meta")
-	collection.ViewRule = types.Pointer("@request.auth.id != ''")
-	collection.CreateRule = types.Pointer("")
-	collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
 	collection.Fields.Add(&core.SelectField{
