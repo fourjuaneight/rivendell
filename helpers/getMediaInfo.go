@@ -209,13 +209,12 @@ func getDirector(category string, id string) (string, error) {
 
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s/credits", category, id)
 
-	req, err := http.NewRequest("POST", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return "", fmt.Errorf("[getCredits][http.NewRequest]: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -259,13 +258,12 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s", data.category, data.id)
 
-	req, err := http.NewRequest("POST", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][http.NewRequest]: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

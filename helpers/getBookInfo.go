@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var yearRe = regexp.MustCompile(`\d{4}`)
+
 type openLibraryAuthor struct {
 	URL  string `json:"url"`
 	Name string `json:"name"`
@@ -81,7 +83,6 @@ func GetBookInfo(isbn string) (CleanBook, error) {
 		return CleanBook{}, fmt.Errorf("[GetBookInfo]: no record found for ISBN %s", isbn)
 	}
 
-	yearRe := regexp.MustCompile(`\d{4}`)
 	var year int
 	if match := yearRe.FindString(record.Data.PublishDate); match != "" {
 		fmt.Sscanf(match, "%d", &year)
