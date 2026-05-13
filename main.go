@@ -102,6 +102,15 @@ func enrichMedia(r *core.Record) (bool, error) {
 				return true, nil
 			}
 		}
+	case "games":
+		game, err := helpers.GetGameInfo(r.GetString("title"), r.GetInt("year"))
+		if err != nil {
+			return false, fmt.Errorf("[enrichMedia]: %w", err)
+		}
+		if game.CoverURL != "" {
+			r.Set("cover", game.CoverURL)
+			return true, nil
+		}
 	}
 	return false, nil
 }
