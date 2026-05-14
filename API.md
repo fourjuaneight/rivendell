@@ -6,13 +6,38 @@ All endpoints require auth except record creation (create rule is open).
 
 ## Authentication
 
+PocketBase uses **superuser impersonate tokens** as API keys. These are non-renewable (non-expiring) and grant full access — use only for internal server-to-server calls.
+
+### Get a token
+
+**Option 1 — Admin UI:** `/_/` → Collections → `_superusers` → select user → Impersonate → copy token
+
+**Option 2 — API** (requires an existing superuser session token):
+
 ```sh
-curl -X POST '{BASE_URL}/api/collections/users/auth-with-password' \
+curl -X POST '{BASE_URL}/api/collections/_superusers/impersonate/{superuserId}' \
+  -H 'Authorization: {superuser-session-token}' \
   -H 'Content-Type: application/json' \
-  -d '{"identity": "you@example.com", "password": "yourpassword"}'
+  -d '{"duration": 0}'
 ```
 
-Returns `token`. Pass as `Authorization: Bearer {token}` on all subsequent requests.
+```js
+const res = await fetch(`${BASE_URL}/api/collections/_superusers/impersonate/${superuserId}`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': superuserSessionToken,
+  },
+  body: JSON.stringify({ duration: 0 }),
+});
+const { token } = await res.json();
+```
+
+`duration: 0` = no expiry.
+
+### Use the token
+
+Pass as `Authorization: {token}` — no `Bearer` prefix — on all read/update requests.
 
 ## Collections
 
@@ -37,6 +62,21 @@ curl -X POST '{BASE_URL}/api/collections/bookmarks/records' \
   }'
 ```
 
+```js
+const res = await fetch(`${BASE_URL}/api/collections/bookmarks/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Some Article',
+    creator: 'Author Name',
+    url: 'https://example.com/article',
+    type: 'articles',
+    tags: ['meta_record_id_1', 'meta_record_id_2'],
+  }),
+});
+const record = await res.json();
+```
+
 `type` options: `articles` · `podcasts` · `videos`
 
 #### github
@@ -48,6 +88,15 @@ Server sets: `name`, `owner`, `description`, `language` (fetched from GitHub API
 curl -X POST '{BASE_URL}/api/collections/github/records' \
   -H 'Content-Type: application/json' \
   -d '{"url": "https://github.com/owner/repo"}'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/github/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ url: 'https://github.com/owner/repo' }),
+});
+const record = await res.json();
 ```
 
 #### mtg
@@ -63,6 +112,15 @@ curl -X POST '{BASE_URL}/api/collections/mtg/records' \
     "set": "lea",
     "collector_number": 233
   }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/mtg/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'Black Lotus', set: 'lea', collector_number: 233 }),
+});
+const record = await res.json();
 ```
 
 ### Full manual entry
@@ -86,13 +144,27 @@ curl -X POST '{BASE_URL}/api/collections/feeds/records' \
   }'
 ```
 
+```js
+const res = await fetch(`${BASE_URL}/api/collections/feeds/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Feed Name',
+    url: 'https://example.com',
+    rss: 'https://example.com/feed.xml',
+    type: 'websites',
+    tags: ['meta_record_id_1'],
+  }),
+});
+const record = await res.json();
+```
+
 `type` options: `podcasts` · `websites` · `youtube`
 
 #### media
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/media/records' \
-  -H 'Authorization: Bearer {token}' \
   -H 'Content-Type: application/json' \
   -d '{
     "title": "Album Title",
@@ -103,13 +175,27 @@ curl -X POST '{BASE_URL}/api/collections/media/records' \
   }'
 ```
 
+```js
+const res = await fetch(`${BASE_URL}/api/collections/media/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Album Title',
+    creator: 'Artist Name',
+    genre: 'meta_record_id',
+    year: 1991,
+    type: 'cds',
+  }),
+});
+const record = await res.json();
+```
+
 `type` options: `books` · `cds` · `games` · `movies` · `shows` · `vinyls`
 
 #### records
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/records/records' \
-  -H 'Authorization: Bearer {token}' \
   -H 'Content-Type: application/json' \
   -d '{
     "company": "Acme Corp",
@@ -118,6 +204,21 @@ curl -X POST '{BASE_URL}/api/collections/records/records' \
     "start": "2022-01-01 00:00:00",
     "end": "2024-06-01 00:00:00"
   }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/records/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    company: 'Acme Corp',
+    position: 'Engineer',
+    stack: ['Go', 'Postgres'],
+    start: '2022-01-01 00:00:00',
+    end: '2024-06-01 00:00:00',
+  }),
+});
+const record = await res.json();
 ```
 
 `end` is optional (omit for current position).
@@ -132,6 +233,15 @@ curl -X POST '{BASE_URL}/api/collections/meta/records' \
   -d '{"name": "programming", "type": "tags"}'
 ```
 
+```js
+const res = await fetch(`${BASE_URL}/api/collections/meta/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'programming', type: 'tags' }),
+});
+const record = await res.json();
+```
+
 `type` options: `tags` · `genre`
 
 The `id` returned here is what you pass as the relation value in `bookmarks.tags`, `feeds.tags`, `media.genre`.
@@ -142,9 +252,21 @@ All updates require auth.
 
 ```sh
 curl -X PATCH '{BASE_URL}/api/collections/{collection}/records/{id}' \
-  -H 'Authorization: Bearer {token}' \
+  -H 'Authorization: {token}' \
   -H 'Content-Type: application/json' \
   -d '{"field": "new_value"}'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/${collection}/records/${id}`, {
+  method: 'PATCH',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': token,
+  },
+  body: JSON.stringify({ field: 'new_value' }),
+});
+const updated = await res.json();
 ```
 
 Common update use cases:
@@ -155,8 +277,22 @@ Common update use cases:
 ## Listing / querying records
 
 ```sh
-curl '{BASE_URL}/api/collections/{collection}/records' \
-  -H 'Authorization: Bearer {token}'
+curl '{BASE_URL}/api/collections/{collection}/records?filter=type%3D"movies"&sort=-created&page=1&perPage=30' \
+  -H 'Authorization: {token}'
 ```
 
-Supports `?filter=`, `?sort=`, `?page=`, `?perPage=` query params per PocketBase docs.
+```js
+const params = new URLSearchParams({
+  filter: 'type = "movies"',
+  sort: '-created',
+  page: 1,
+  perPage: 30,
+});
+const res = await fetch(`${BASE_URL}/api/collections/${collection}/records?${params}`, {
+  headers: { 'Authorization': token },
+});
+const { items, totalItems, totalPages } = await res.json();
+```
+
+Filter operators: `=` `!=` `>` `<` `>=` `<=` `~` (contains) `!~` (not contains). Combine with `&&` / `||`.
+Sort prefix `-` = descending (e.g. `-created` = newest first).
