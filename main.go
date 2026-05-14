@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/fourjuaneight/rivendell/helpers"
 	_ "github.com/fourjuaneight/rivendell/migrations"
@@ -151,6 +152,66 @@ func enrichMedia(r *core.Record) (bool, error) {
 	return true, nil
 }
 
+// resolveTagNames looks up meta records by name and returns their IDs.
+// Allows callers to send tag names instead of opaque relation IDs.
+func resolveTagNames(app core.App, names []string) ([]string, error) {
+	if len(names) == 0 {
+		return nil, nil
+	}
+
+	parts := make([]string, len(names))
+	for i, name := range names {
+		parts[i] = fmt.Sprintf(`name = "%s"`, name)
+	}
+	filter := fmt.Sprintf(`(%s) && type = "tags"`, strings.Join(parts, " || "))
+
+	records, err := app.FindRecordsByFilter("meta", filter, "", 0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("[resolveTagNames]: %w", err)
+	}
+
+	ids := make([]string, len(records))
+	for i, r := range records {
+		ids[i] = r.Id
+	}
+	return ids, nil
+}
+
+// resolveMetaName looks up a single meta record by name and type, returning its ID.
+func resolveMetaName(app core.App, name, metaType string) (string, error) {
+	filter := fmt.Sprintf(`name = "%s" && type = "%s"`, name, metaType)
+	record, err := app.FindFirstRecordByFilter("meta", filter)
+	if err != nil {
+		return "", fmt.Errorf("[resolveMetaName] %q (%s): %w", name, metaType, err)
+	}
+	return record.Id, nil
+}
+
+func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
+	r.Set("dead", false)
+	r.Set("shared", false)
+
+	if tagNames := r.GetStringSlice("tags"); len(tagNames) > 0 {
+		tagIDs, err := resolveTagNames(app, tagNames)
+		if err != nil {
+			return fmt.Errorf("[prepareBookmarkOrFeed]: %w", err)
+		}
+		r.Set("tags", tagIDs)
+	}
+	return nil
+}
+
+func prepareMedia(app core.App, r *core.Record) error {
+	if genreName := r.GetString("genre"); genreName != "" {
+		genreID, err := resolveMetaName(app, genreName, "genre")
+		if err != nil {
+			return fmt.Errorf("[prepareMedia]: %w", err)
+		}
+		r.Set("genre", genreID)
+	}
+	return nil
+}
+
 func main() {
 	app := pocketbase.New()
 
@@ -161,37 +222,38 @@ func main() {
 		Automigrate: true,
 	})
 
-	// Pre-save hook: fields set before e.Next() are included in the initial DB insert.
-	app.OnRecordCreateRequest("bookmarks", "feeds").BindFunc(func(e *core.RecordRequestEvent) error {
-		e.Record.Set("dead", false)
-		e.Record.Set("shared", false)
+	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
+	preparers := map[string]func(core.App, *core.Record) error{
+		"bookmarks": prepareBookmarkOrFeed,
+		"feeds":     prepareBookmarkOrFeed,
+		"media":     prepareMedia,
+	}
 
-		return e.Next()
-	})
+	// enrichers run after e.Next() — call external APIs and write enriched fields back.
+	enrichers := map[string]func(*core.Record) (bool, error){
+		"bookmarks": enrichBookmarks,
+		"github":    enrichGithub,
+		"mtg":       enrichMtg,
+		"media":     enrichMedia,
+	}
 
-	// Post-save hook: e.Next() commits the record first, then external API calls enrich it
-	// and a second app.Save() writes the additional fields back. Separate from the pre-save
-	// hook because the API calls are fallible and shouldn't block the initial insert.
-	app.OnRecordCreateRequest("bookmarks", "github", "mtg", "media").BindFunc(func(e *core.RecordRequestEvent) error {
+	app.OnRecordCreateRequest("bookmarks", "feeds", "github", "mtg", "media").BindFunc(func(e *core.RecordRequestEvent) error {
+		if fn := preparers[e.Collection.Name]; fn != nil {
+			if err := fn(e.App, e.Record); err != nil {
+				return fmt.Errorf("[OnRecordCreateRequest]: %w", err)
+			}
+		}
+
 		if err := e.Next(); err != nil {
 			return err
 		}
 
-		// Dispatch table maps collection name to its enrichment function.
-		// Each enricher sets fields on the record and returns true if a save is needed.
-		enrichers := map[string]func(*core.Record) (bool, error){
-			"bookmarks": enrichBookmarks,
-			"github":    enrichGithub,
-			"mtg":       enrichMtg,
-			"media":     enrichMedia,
-		}
-
-		enrich, ok := enrichers[e.Collection.Name]
-		if !ok {
+		fn := enrichers[e.Collection.Name]
+		if fn == nil {
 			return nil
 		}
 
-		needsSave, err := enrich(e.Record)
+		needsSave, err := fn(e.Record)
 		if err != nil {
 			return fmt.Errorf("[OnRecordCreateRequest]: %w", err)
 		}
