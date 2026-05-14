@@ -82,18 +82,24 @@ func enrichMtg(r *core.Record) (bool, error) {
 		break
 	}
 
-	r.Set("colors", card.Colors)
-	r.Set("type", card.Type)
-	r.Set("set_name", card.SetName)
-	r.Set("oracle_text", card.OracleText)
-	r.Set("flavor_text", card.FlavorText)
-	r.Set("rarity", card.Rarity)
-	r.Set("artist", card.Artist)
-	r.Set("released_at", card.ReleasedAt)
-	r.Set("image", card.Image)
-	if card.Back != nil {
-		r.Set("back", card.Back)
+	// Only overwrite card fields when caller didn't provide full data.
+	// rarity is a reliable sentinel — always set by Scryfall, never by the caller alone.
+	if r.GetString("rarity") == "" {
+		r.Set("colors", card.Colors)
+		r.Set("type", card.Type)
+		r.Set("set_name", card.SetName)
+		r.Set("oracle_text", card.OracleText)
+		r.Set("flavor_text", card.FlavorText)
+		r.Set("rarity", card.Rarity)
+		r.Set("artist", card.Artist)
+		r.Set("released_at", card.ReleasedAt)
+		if card.Back != nil {
+			r.Set("back", card.Back)
+		}
 	}
+
+	// Always set image — fetched from Scryfall regardless of what caller provided.
+	r.Set("image", card.Image)
 	return true, nil
 }
 
