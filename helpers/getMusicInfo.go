@@ -32,13 +32,14 @@ type CleanMusic struct {
 // parseDiscogsTitle splits the Discogs search result title format "Artist - Album Title"
 // into its components. Takes the first " - " separator; album may contain additional dashes.
 func parseDiscogsTitle(title string) (artist, album string) {
-	idx := strings.Index(title, " - ")
-	if idx == -1 {
+	artist, album, found := strings.Cut(title, " - ")
+	if !found {
 		return "", title
 	}
-	return title[:idx], title[idx+3:]
+	return artist, album
 }
 
+// DOCS: https://www.discogs.com/developers
 func GetMusicInfo(title, artist string, year int) (CleanMusic, error) {
 	token, err := GetKeys("DISCOGS_TOKEN")
 	if err != nil {

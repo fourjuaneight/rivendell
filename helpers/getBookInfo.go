@@ -46,6 +46,7 @@ type CleanBook struct {
 }
 
 func GetBookInfo(isbn string) (CleanBook, error) {
+	// DOCS: https://openlibrary.org/dev/docs/api/read (ISBN lookup via Read API)
 	clean := strings.NewReplacer("-", "", " ", "").Replace(isbn)
 	endpoint := fmt.Sprintf("https://openlibrary.org/api/volumes/brief/isbn/%s.json", clean)
 
@@ -107,6 +108,7 @@ func GetBookInfo(isbn string) (CleanBook, error) {
 	if coverISBN == "" {
 		coverISBN = isbn10
 	}
+	// DOCS: https://openlibrary.org/dev/docs/api/covers (cover image URL format)
 	coverURL := ""
 	if coverISBN != "" {
 		coverURL = fmt.Sprintf("https://covers.openlibrary.org/b/isbn/%s-L.jpg", coverISBN)

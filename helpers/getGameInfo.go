@@ -57,6 +57,7 @@ type CleanGame struct {
 	CoverURL string
 }
 
+// DOCS: https://dev.twitch.tv/docs/authentication/getting-tokens-oauth/#client-credentials-grant-flow
 func getIGDBToken() (string, error) {
 	igdbTokenMu.Lock()
 	defer igdbTokenMu.Unlock()
@@ -121,6 +122,9 @@ func GetGameInfo(title string, year int) (CleanGame, error) {
 	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 	startOfNextYear := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
+	// DOCS: https://api-docs.igdb.com/#game (games endpoint)
+	//       https://api-docs.igdb.com/#search (Apicalypse search syntax)
+	//       https://api-docs.igdb.com/#images (cover image URL format)
 	// version_parent = null excludes DLCs and special editions, returning only base games.
 	query := strings.TrimSpace(fmt.Sprintf(`
 search "%s";

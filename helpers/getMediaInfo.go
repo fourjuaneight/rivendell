@@ -207,6 +207,8 @@ func getDirector(category string, id string) (string, error) {
 		return "", fmt.Errorf("[getCredits]%w", err)
 	}
 
+	// DOCS: https://developer.themoviedb.org/reference/movie-credits (movie)
+	//       https://developer.themoviedb.org/reference/tv-series-credits (tv)
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s/credits", category, id)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -256,6 +258,8 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]%w", err)
 	}
 
+	// DOCS: https://developer.themoviedb.org/reference/movie-details (movie)
+	//       https://developer.themoviedb.org/reference/tv-series-details (tv)
 	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s", data.category, data.id)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -354,6 +358,8 @@ func SearchMedia(title string, year int, mediaType string) (string, error) {
 		yearParam = "first_air_date_year"
 	}
 
+	// DOCS: https://developer.themoviedb.org/reference/search-movie (movies)
+	//       https://developer.themoviedb.org/reference/search-tv (shows)
 	endpoint := fmt.Sprintf(
 		"https://api.themoviedb.org/3/search/%s?query=%s&%s=%d",
 		category, neturl.QueryEscape(title), yearParam, year,
