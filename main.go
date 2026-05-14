@@ -98,8 +98,34 @@ func enrichMtg(r *core.Record) (bool, error) {
 		}
 	}
 
-	// Always set image — fetched from Scryfall regardless of what caller provided.
-	r.Set("image", card.Image)
+	// Download front image from Scryfall, upload to B2, store B2 URL.
+	if card.Image != "" {
+		imageData, err := downloadCover(card.Image)
+		if err != nil {
+			return false, fmt.Errorf("[enrichMtg][downloadCover]: %w", err)
+		}
+		imagePath := fmt.Sprintf("MTG/%s/%s.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
+		b2ImageURL, err := helpers.UploadToB2(imageData, imagePath, "image/jpeg")
+		if err != nil {
+			return false, fmt.Errorf("[enrichMtg][UploadToB2]: %w", err)
+		}
+		r.Set("image", b2ImageURL)
+	}
+
+	// Same for back face when present.
+	if card.Back != nil && *card.Back != "" {
+		backData, err := downloadCover(*card.Back)
+		if err != nil {
+			return false, fmt.Errorf("[enrichMtg][downloadCover back]: %w", err)
+		}
+		backPath := fmt.Sprintf("MTG/%s/%s-back.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
+		b2BackURL, err := helpers.UploadToB2(backData, backPath, "image/jpeg")
+		if err != nil {
+			return false, fmt.Errorf("[enrichMtg][UploadToB2 back]: %w", err)
+		}
+		r.Set("back", b2BackURL)
+	}
+
 	return true, nil
 }
 
