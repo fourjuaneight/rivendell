@@ -9,10 +9,12 @@ RUN go build -o rivendell .
 
 FROM alpine:latest
 
-RUN apk add --no-cache ca-certificates ffmpeg tzdata wget \
+RUN apk add --no-cache ca-certificates chromium ffmpeg nodejs npm tzdata wget \
     && wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
          -O /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
+    && chmod a+rx /usr/local/bin/yt-dlp \
+    && npm install -g single-file-cli \
+    && npm cache clean --force
 
 WORKDIR /app
 COPY --from=builder /app/rivendell .

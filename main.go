@@ -17,17 +17,31 @@ import (
 )
 
 func archive(name string, url string, typeName string) (string, error) {
-	media, getcontentErr := helpers.GetContent(name, url, typeName)
-	if getcontentErr != nil {
-		return "", fmt.Errorf("[archive][GetContent]: %w", getcontentErr)
+	media, err := helpers.GetContent(name, url, typeName)
+	if err != nil {
+		return "", fmt.Errorf("[archive][GetContent]: %w", err)
 	}
 
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
 	path := fmt.Sprintf("Bookmarks/%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
-	archiveUrl, uploadtob2Err := helpers.UploadToB2(media, path, typeOps.MIME)
-	if uploadtob2Err != nil {
-		return "", fmt.Errorf("[archive][UploadToB2]: %w", uploadtob2Err)
+	archiveUrl, err := helpers.UploadToB2(media, path, typeOps.MIME)
+	if err != nil {
+		return "", fmt.Errorf("[archive][UploadToB2]: %w", err)
+	}
+
+	// For articles, also upload a SingleFile HTML snapshot to B2 for later use.
+	// Errors are non-fatal — the MD archive is the primary output.
+	if typeName == "articles" {
+		sfData, sfErr := helpers.GetSingleFile(url)
+		if sfErr != nil {
+			log.Printf("[archive][GetSingleFile]: %v", sfErr)
+		} else {
+			sfPath := fmt.Sprintf("Bookmarks/Articles/%s.html", utils.FileNameFmt(name))
+			if _, sfUploadErr := helpers.UploadToB2(sfData, sfPath, "text/html"); sfUploadErr != nil {
+				log.Printf("[archive][UploadToB2 SingleFile]: %v", sfUploadErr)
+			}
+		}
 	}
 
 	return archiveUrl, nil

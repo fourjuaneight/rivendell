@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -153,6 +154,24 @@ func GetYTVid(name string, url string) ([]byte, error) {
 	}
 
 	return media, nil
+}
+
+// GetSingleFile captures a full-page HTML snapshot via single-file-cli and returns the bytes.
+// Requires chromium and single-file-cli installed in the runtime environment.
+func GetSingleFile(urlString string) ([]byte, error) {
+	cmd := exec.Command("single-file",
+		"--browser-executable-path=/usr/bin/chromium-browser",
+		`--browser-args=["--no-sandbox","--headless"]`,
+		"--dump-content",
+		urlString,
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("[GetSingleFile][cmd.Output]: %w", err)
+	}
+
+	return output, nil
 }
 
 func GetContent(name string, url string, mediaType string) ([]byte, error) {
