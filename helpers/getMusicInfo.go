@@ -39,8 +39,13 @@ func parseDiscogsTitle(title string) (artist, album string) {
 	return artist, album
 }
 
+var discogsFormatMap = map[string]string{
+	"cds":    "CD",
+	"vinyls": "Vinyl",
+}
+
 // DOCS: https://www.discogs.com/developers
-func GetMusicInfo(title, artist string, year int) (CleanMusic, error) {
+func GetMusicInfo(title, artist string, year int, mediaType string) (CleanMusic, error) {
 	token, err := GetKeys("DISCOGS_TOKEN")
 	if err != nil {
 		return CleanMusic{}, fmt.Errorf("[GetMusicInfo]%w", err)
@@ -50,9 +55,17 @@ func GetMusicInfo(title, artist string, year int) (CleanMusic, error) {
 	params.Set("release_title", title)
 	params.Set("artist", artist)
 	params.Set("year", fmt.Sprintf("%d", year))
-	// master = canonical release; avoids duplicate pressing-specific results
-	params.Set("type", "master")
 	params.Set("per_page", "1")
+
+	// Use format-specific release search when media type is known; otherwise fall back to master.
+	// Masters are format-agnostic so format= has no effect when type=master.
+	if format, ok := discogsFormatMap[mediaType]; ok {
+		params.Set("type", "release")
+		params.Set("format", format)
+	} else {
+		// master = canonical release; avoids duplicate pressing-specific results
+		params.Set("type", "master")
+	}
 
 	endpoint := fmt.Sprintf("%s/database/search?%s", discogsBaseURL, params.Encode())
 
