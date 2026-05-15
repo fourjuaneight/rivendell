@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -97,7 +97,7 @@ type ScryfallCardData struct {
 	ID              string       `json:"id"`
 	TcgplayerID     int          `json:"tcgplayer_id"`
 	Digital         bool         `json:"digital"`
-	CMC             int          `json:"cmc"`
+	CMC             float64      `json:"cmc"`
 	PennyRank       int          `json:"penny_rank"`
 	Preview         Preview      `json:"preview"`
 	CollectorNumber string       `json:"collector_number"`
@@ -398,23 +398,22 @@ func GetMTGInfo(url string) (CleanMTG, error) {
 	return data, nil
 }
 
-// SearchCard searches Scryfall database for cards matching the given search pattern.
-// DOCS: https://scryfall.com/docs/api/cards/search
-// REF: https://scryfall.com/docs/syntax
+// SearchCard fetches a card directly from Scryfall by set code and collector number.
+// DOCS: https://scryfall.com/docs/api/cards/collector
 func SearchCard(name string, set string, number int) (ScryfallCardSelection, error) {
-	encodedName := url.QueryEscape(name)
-	searchURL := fmt.Sprintf(
-		"https://api.scryfall.com/cards/search?order=set&q=%ss:%s+cn:%d",
-		encodedName,
-		set,
+	// Direct lookup by set+number — more reliable than search query parsing.
+	cardURL := fmt.Sprintf(
+		"https://api.scryfall.com/cards/%s/%d",
+		strings.TrimSpace(strings.ToLower(set)),
 		number,
 	)
 
-	req, err := http.NewRequest("GET", searchURL, nil)
+	req, err := http.NewRequest("GET", cardURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("(SearchCard): failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Rivendell/1.0")
+	req.Header.Set("Accept", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -424,6 +423,8 @@ func SearchCard(name string, set string, number int) (ScryfallCardSelection, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		errBody, _ := io.ReadAll(resp.Body)
+		log.Printf("[SearchCard] Error body: %s", string(errBody))
 		return nil, fmt.Errorf("(SearchCard): %d - %s | %s/%d",
 			resp.StatusCode,
 			resp.Status,
@@ -432,113 +433,76 @@ func SearchCard(name string, set string, number int) (ScryfallCardSelection, err
 		)
 	}
 
-	// First, try to decode as error response
-	var rawResponse map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&rawResponse); err != nil {
+	var card ScryfallCardData
+	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
 		return nil, fmt.Errorf("(SearchCard): failed to decode response: %w", err)
 	}
 
-	if rawResponse["object"] == "error" {
-		details, _ := rawResponse["details"].(string)
-		warnings, _ := rawResponse["warnings"].([]interface{})
+	// Handle oracle text
+	var oracleText *string
+	if card.OracleText != "" {
+		escaped := escapeText(card.OracleText)
+		oracleText = &escaped
+	} else if len(card.CardFaces) > 0 && card.CardFaces[0].OracleText != "" {
+		escaped := escapeText(card.CardFaces[0].OracleText)
+		oracleText = &escaped
+	}
 
-		var errMsg string
-		if len(warnings) > 0 {
-			warningStrs := make([]string, len(warnings))
-			for i, w := range warnings {
-				warningStrs[i], _ = w.(string)
-			}
-			errMsg = strings.Join(warningStrs, "\n")
+	// Handle flavor text
+	var flavorText *string
+	if card.FlavorText != "" {
+		escaped := escapeText(card.FlavorText)
+		flavorText = &escaped
+	} else if len(card.CardFaces) > 0 && card.CardFaces[0].FlavorText != "" {
+		escaped := escapeText(card.CardFaces[0].FlavorText)
+		flavorText = &escaped
+	}
+
+	// Handle colors
+	var colors []string
+	for _, color := range card.Colors {
+		if colorName, ok := magicColors[color]; ok {
+			colors = append(colors, colorName)
 		} else {
-			errMsg = details
+			colors = append(colors, color)
 		}
-		return nil, fmt.Errorf("(SearchCard): \n %s", errMsg)
 	}
 
-	// Re-marshal and unmarshal as ScryfallSearch
-	jsonData, err := json.Marshal(rawResponse)
-	if err != nil {
-		return nil, fmt.Errorf("(SearchCard): failed to re-marshal response: %w", err)
+	// Handle front image
+	var image string
+	if card.ImageUris.Png != "" {
+		image = card.ImageUris.Png
+	} else if len(card.CardFaces) > 0 && card.CardFaces[0].ImageUris.Png != "" {
+		image = card.CardFaces[0].ImageUris.Png
 	}
 
-	var searchResponse ScryfallSearch
-	if err := json.Unmarshal(jsonData, &searchResponse); err != nil {
-		return nil, fmt.Errorf("(SearchCard): failed to parse search response: %w", err)
+	// Handle back image
+	var back *string
+	if len(card.CardFaces) > 1 && card.CardFaces[1].ImageUris.Png != "" {
+		backImg := card.CardFaces[1].ImageUris.Png
+		back = &backImg
 	}
 
-	selection := make(ScryfallCardSelection)
+	collectorNumber, _ := strconv.Atoi(card.CollectorNumber)
 
-	for _, card := range searchResponse.Data {
-		// Handle oracle text
-		var oracleText *string
-		if card.OracleText != "" {
-			escaped := escapeText(card.OracleText)
-			oracleText = &escaped
-		} else if len(card.CardFaces) > 0 && card.CardFaces[0].OracleText != "" {
-			escaped := escapeText(card.CardFaces[0].OracleText)
-			oracleText = &escaped
-		}
-
-		// Handle flavor text
-		var flavorText *string
-		if card.FlavorText != "" {
-			escaped := escapeText(card.FlavorText)
-			flavorText = &escaped
-		} else if len(card.CardFaces) > 0 && card.CardFaces[0].FlavorText != "" {
-			escaped := escapeText(card.CardFaces[0].FlavorText)
-			flavorText = &escaped
-		}
-
-		// Handle colors
-		var colors []string
-		if len(card.Colors) > 0 {
-			colors = make([]string, len(card.Colors))
-			for i, color := range card.Colors {
-				if colorName, ok := magicColors[color]; ok {
-					colors[i] = colorName
-				} else {
-					colors[i] = color
-				}
-			}
-		}
-
-		// Handle image
-		var image string
-		if card.ImageUris.Png != "" {
-			image = card.ImageUris.Png
-		} else if len(card.CardFaces) > 0 && card.CardFaces[0].ImageUris.Png != "" {
-			image = card.CardFaces[0].ImageUris.Png
-		}
-
-		// Handle back image
-		var back *string
-		if len(card.CardFaces) > 1 && card.CardFaces[1].ImageUris.Png != "" {
-			backImg := card.CardFaces[1].ImageUris.Png
-			back = &backImg
-		}
-
-		// Parse collector number
-		collectorNumber, _ := strconv.Atoi(card.CollectorNumber)
-
-		item := MTGItem{
-			Name:            card.Name,
-			Colors:          colors,
-			Type:            card.TypeLine,
-			Set:             strings.ToUpper(card.Set),
-			SetName:         card.SetName,
-			OracleText:      oracleText,
-			FlavorText:      flavorText,
-			Rarity:          card.Rarity,
-			CollectorNumber: collectorNumber,
-			Artist:          card.Artist,
-			ReleasedAt:      card.ReleasedAt,
-			Image:           image,
-			Back:            back,
-		}
-
-		key := fmt.Sprintf("%s - (%s) #%d", card.Name, strings.ToUpper(card.Set), collectorNumber)
-		selection[key] = item
+	item := MTGItem{
+		Name:            card.Name,
+		Colors:          colors,
+		Type:            card.TypeLine,
+		Set:             strings.ToUpper(card.Set),
+		SetName:         card.SetName,
+		OracleText:      oracleText,
+		FlavorText:      flavorText,
+		Rarity:          card.Rarity,
+		CollectorNumber: collectorNumber,
+		Artist:          card.Artist,
+		ReleasedAt:      card.ReleasedAt,
+		Image:           image,
+		Back:            back,
 	}
+
+	key := fmt.Sprintf("%s - (%s) #%d", card.Name, strings.ToUpper(card.Set), collectorNumber)
+	selection := ScryfallCardSelection{key: item}
 
 	return selection, nil
 }
