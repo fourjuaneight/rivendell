@@ -109,19 +109,26 @@ func MediaCollection() *core.Collection {
 	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "genre",
-		Required:      true,
+		Required:      false,
 		CollectionId:  GetMetaID(),
 		MaxSelect:     1,
 		CascadeDelete: false,
 	})
-	collection.Fields.Add(&core.NumberField{Name: "year", Required: true})
+	collection.Fields.Add(&core.NumberField{Name: "year", Required: false})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
 		Required:  true,
 		Values:    []string{"books", "cds", "games", "movies", "shows", "vinyls"},
 		MaxSelect: 1,
 	})
-	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "definition",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.TextField{Name: "barcode", Required: true})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
@@ -195,7 +202,7 @@ func MetaCollection() *core.Collection {
 	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
-		Values:    []string{"tags", "genre"},
+		Values:    []string{"definition", "tags", "genre"},
 		MaxSelect: 1,
 	})
 
