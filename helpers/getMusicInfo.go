@@ -44,62 +44,86 @@ var discogsFormatMap = map[string]string{
 	"vinyls": "Vinyl",
 }
 
-// DOCS: https://www.discogs.com/developers
-func GetMusicInfo(title, artist string, year int, mediaType string) (CleanMusic, error) {
-	token, err := GetKeys("DISCOGS_TOKEN")
-	if err != nil {
-		return CleanMusic{}, fmt.Errorf("[GetMusicInfo]%w", err)
-	}
-
-	params := neturl.Values{}
-	params.Set("release_title", title)
-	params.Set("artist", artist)
-	params.Set("year", fmt.Sprintf("%d", year))
-	params.Set("per_page", "1")
-
-	// Use format-specific release search when media type is known; otherwise fall back to master.
-	// Masters are format-agnostic so format= has no effect when type=master.
-	if format, ok := discogsFormatMap[mediaType]; ok {
-		params.Set("type", "release")
-		params.Set("format", format)
-	} else {
-		// master = canonical release; avoids duplicate pressing-specific results
-		params.Set("type", "master")
-	}
-
+func discogsSearch(token string, params neturl.Values) ([]discogsSearchResult, error) {
 	endpoint := fmt.Sprintf("%s/database/search?%s", discogsBaseURL, params.Encode())
-
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return CleanMusic{}, fmt.Errorf("[GetMusicInfo][http.NewRequest]: %w", err)
+		return nil, fmt.Errorf("[discogsSearch][http.NewRequest]: %w", err)
 	}
-
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Discogs token=%s", token))
 	req.Header.Set("User-Agent", "Rivendell/1.0")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return CleanMusic{}, fmt.Errorf("[GetMusicInfo][client.Do]: %w", err)
+		return nil, fmt.Errorf("[discogsSearch][client.Do]: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return CleanMusic{}, fmt.Errorf("[GetMusicInfo][io.ReadAll]: %w", err)
+		return nil, fmt.Errorf("[discogsSearch][io.ReadAll]: %w", err)
 	}
 
 	var result discogsSearchResponse
 	if err = json.Unmarshal(body, &result); err != nil {
-		return CleanMusic{}, fmt.Errorf("[GetMusicInfo][json.Unmarshal]: %w", err)
+		return nil, fmt.Errorf("[discogsSearch][json.Unmarshal]: %w", err)
+	}
+	return result.Results, nil
+}
+
+// DOCS: https://www.discogs.com/developers
+func GetMusicInfo(title, artist string, year int, barcode, mediaType string) (CleanMusic, error) {
+	token, err := GetKeys("DISCOGS_TOKEN")
+	if err != nil {
+		return CleanMusic{}, fmt.Errorf("[GetMusicInfo]%w", err)
 	}
 
-	if len(result.Results) == 0 {
+	var results []discogsSearchResult
+
+	// Barcode search first — identifies the exact pressing.
+	if barcode != "" {
+		barcodeParams := neturl.Values{}
+		barcodeParams.Set("barcode", barcode)
+		barcodeParams.Set("type", "release")
+		barcodeParams.Set("per_page", "1")
+		results, err = discogsSearch(token, barcodeParams)
+		if err != nil {
+			return CleanMusic{}, fmt.Errorf("[GetMusicInfo]%w", err)
+		}
+	}
+
+	// Fall back to title+artist search if barcode yielded nothing.
+	if len(results) == 0 {
+		params := neturl.Values{}
+		params.Set("release_title", title)
+		params.Set("artist", artist)
+		if year != 0 {
+			params.Set("year", fmt.Sprintf("%d", year))
+		}
+		params.Set("per_page", "1")
+
+		// Use format-specific release search when media type is known; otherwise fall back to master.
+		// Masters are format-agnostic so format= has no effect when type=master.
+		if format, ok := discogsFormatMap[mediaType]; ok {
+			params.Set("type", "release")
+			params.Set("format", format)
+		} else {
+			// master = canonical release; avoids duplicate pressing-specific results
+			params.Set("type", "master")
+		}
+
+		results, err = discogsSearch(token, params)
+		if err != nil {
+			return CleanMusic{}, fmt.Errorf("[GetMusicInfo]%w", err)
+		}
+	}
+
+	if len(results) == 0 {
 		return CleanMusic{}, fmt.Errorf("[GetMusicInfo]: no results for %q by %q (%d)", title, artist, year)
 	}
 
-	r := result.Results[0]
+	r := results[0]
 	parsedArtist, parsedTitle := parseDiscogsTitle(r.Title)
 
 	releaseYear := r.Year
