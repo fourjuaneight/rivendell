@@ -98,15 +98,16 @@ func FeedsCollection() *core.Collection {
 	return collection
 }
 
-func MediaCollection() *core.Collection {
-	collection := core.NewBaseCollection("media")
+func BooksCollection() *core.Collection {
+	collection := core.NewBaseCollection("books")
 	authRule := "@request.auth.id != ''"
 	collection.ViewRule = &authRule
 	collection.CreateRule = new(string)
 	collection.UpdateRule = &authRule
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
-	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "author", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "isbn"})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "genre",
 		Required:      false,
@@ -114,12 +115,84 @@ func MediaCollection() *core.Collection {
 		MaxSelect:     1,
 		CascadeDelete: false,
 	})
-	collection.Fields.Add(&core.NumberField{Name: "year", Required: false})
-	collection.Fields.Add(&core.SelectField{
-		Name:      "type",
-		Required:  true,
-		Values:    []string{"books", "cds", "games", "movies", "shows", "vinyls"},
-		MaxSelect: 1,
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
+func CdsCollection() *core.Collection {
+	collection := core.NewBaseCollection("cds")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "album", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "artist", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
+func GamesCollection() *core.Collection {
+	collection := core.NewBaseCollection("games")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "publisher"})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "platform",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
+func MoviesCollection() *core.Collection {
+	collection := core.NewBaseCollection("movies")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "director"})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
 	})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "definition",
@@ -128,7 +201,62 @@ func MediaCollection() *core.Collection {
 		MaxSelect:     1,
 		CascadeDelete: false,
 	})
-	collection.Fields.Add(&core.TextField{Name: "barcode", Required: true})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
+func ShowsCollection() *core.Collection {
+	collection := core.NewBaseCollection("shows")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "director"})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "definition",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
+func VinylsCollection() *core.Collection {
+	collection := core.NewBaseCollection("vinyls")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "album", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "artist", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "genre",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
@@ -202,7 +330,7 @@ func MetaCollection() *core.Collection {
 	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
-		Values:    []string{"definition", "tags", "genre"},
+		Values:    []string{"definition", "genre", "platform", "tags"},
 		MaxSelect: 1,
 	})
 
