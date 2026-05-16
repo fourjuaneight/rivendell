@@ -181,7 +181,6 @@ type CleanMedia struct {
 	Genre    string
 	Year     string
 	Type     string
-	TmdbID   int
 	CoverURL string
 }
 
@@ -307,7 +306,6 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 			Genre:    "",
 			Year:     year,
 			Type:     "movie",
-			TmdbID:   movie.ID,
 			CoverURL: coverURL,
 		}, nil
 	}
@@ -331,24 +329,42 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 		Genre:    "",
 		Year:     year,
 		Type:     "tv",
-		TmdbID:   tv.ID,
 		CoverURL: coverURL,
 	}, nil
 }
 
 type searchResult struct {
 	Results []struct {
-		ID         int    `json:"id"`
-		PosterPath string `json:"poster_path"`
+		ID int `json:"id"`
 	} `json:"results"`
 }
 
-// SearchMedia searches TMDB by title/year and returns the cover URL of the first result.
+func tmdbGet(token, endpoint string) ([]byte, error) {
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("[tmdbGet][http.NewRequest]: %w", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("[tmdbGet][client.Do]: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("[tmdbGet][io.ReadAll]: %w", err)
+	}
+	return body, nil
+}
+
+// SearchMedia searches TMDB by title/year and returns a full CleanMedia for the first result.
 // Used by the create hook. GetMediaInfo is available for URL-based full detail lookups.
-func SearchMedia(title string, year int, mediaType string) (string, error) {
+func SearchMedia(title string, year int, mediaType string) (CleanMedia, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {
-		return "", fmt.Errorf("[SearchMedia]%w", err)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
 	}
 
 	category := "movie"
@@ -360,43 +376,86 @@ func SearchMedia(title string, year int, mediaType string) (string, error) {
 
 	// DOCS: https://developer.themoviedb.org/reference/search-movie (movies)
 	//       https://developer.themoviedb.org/reference/search-tv (shows)
-	endpoint := fmt.Sprintf(
-		"https://api.themoviedb.org/3/search/%s?query=%s&%s=%d",
-		category, neturl.QueryEscape(title), yearParam, year,
-	)
-
-	req, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return "", fmt.Errorf("[SearchMedia][http.NewRequest]: %w", err)
+	searchEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/search/%s?query=%s", category, neturl.QueryEscape(title))
+	if year != 0 {
+		searchEndpoint += fmt.Sprintf("&%s=%d", yearParam, year)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	searchBody, err := tmdbGet(token, searchEndpoint)
 	if err != nil {
-		return "", fmt.Errorf("[SearchMedia][client.Do]: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("[SearchMedia][io.ReadAll]: %w", err)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
 	}
 
 	var results searchResult
-	if err = json.Unmarshal(body, &results); err != nil {
-		return "", fmt.Errorf("[SearchMedia][json.Unmarshal]: %w", err)
+	if err = json.Unmarshal(searchBody, &results); err != nil {
+		return CleanMedia{}, fmt.Errorf("[SearchMedia][json.Unmarshal]: %w", err)
 	}
 
 	if len(results.Results) == 0 {
-		return "", fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
 	}
 
+	// DOCS: https://developer.themoviedb.org/reference/movie-details (movie)
+	//       https://developer.themoviedb.org/reference/tv-series-details (tv)
+	detailEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%d", category, results.Results[0].ID)
+	detailBody, err := tmdbGet(token, detailEndpoint)
+	if err != nil {
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
+	}
+
+	if category == "movie" {
+		var movie Movie
+		if err = json.Unmarshal(detailBody, &movie); err != nil {
+			return CleanMedia{}, fmt.Errorf("[SearchMedia][json.Unmarshal movie]: %w", err)
+		}
+		genre := ""
+		if len(movie.Genres) > 0 {
+			genre = movie.Genres[0].Name
+		}
+		coverURL := ""
+		if movie.PosterPath != "" {
+			coverURL = "https://image.tmdb.org/t/p/original" + movie.PosterPath
+		}
+		releaseYear := year
+		if len(movie.ReleaseDate) >= 4 {
+			releaseYear = 0
+			for _, c := range movie.ReleaseDate[:4] {
+				releaseYear = releaseYear*10 + int(c-'0')
+			}
+		}
+		return CleanMedia{
+			Title:    movie.Title,
+			Genre:    genre,
+			Year:     fmt.Sprintf("%d", releaseYear),
+			Type:     "movies",
+			CoverURL: coverURL,
+		}, nil
+	}
+
+	var tv TVShow
+	if err = json.Unmarshal(detailBody, &tv); err != nil {
+		return CleanMedia{}, fmt.Errorf("[SearchMedia][json.Unmarshal tv]: %w", err)
+	}
+	genre := ""
+	if len(tv.Genres) > 0 {
+		genre = tv.Genres[0].Name
+	}
 	coverURL := ""
-	if results.Results[0].PosterPath != "" {
-		coverURL = "https://image.tmdb.org/t/p/original" + results.Results[0].PosterPath
+	if tv.PosterPath != "" {
+		coverURL = "https://image.tmdb.org/t/p/original" + tv.PosterPath
 	}
-
-	return coverURL, nil
+	releaseYear := year
+	if len(tv.FirstAirDate) >= 4 {
+		releaseYear = 0
+		for _, c := range tv.FirstAirDate[:4] {
+			releaseYear = releaseYear*10 + int(c-'0')
+		}
+	}
+	return CleanMedia{
+		Title:    tv.Name,
+		Genre:    genre,
+		Year:     fmt.Sprintf("%d", releaseYear),
+		Type:     "shows",
+		CoverURL: coverURL,
+	}, nil
 }
