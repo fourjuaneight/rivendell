@@ -119,19 +119,25 @@ func GetGameInfo(title string, year int) (CleanGame, error) {
 		return CleanGame{}, fmt.Errorf("[GetGameInfo]%w", err)
 	}
 
-	startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
-	startOfNextYear := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
-
 	// DOCS: https://api-docs.igdb.com/#game (games endpoint)
 	//       https://api-docs.igdb.com/#search (Apicalypse search syntax)
 	//       https://api-docs.igdb.com/#images (cover image URL format)
 	// version_parent = null excludes DLCs and special editions, returning only base games.
+	var whereClause string
+	if year != 0 {
+		startOfYear := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+		startOfNextYear := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+		whereClause = fmt.Sprintf("where version_parent = null & first_release_date >= %d & first_release_date < %d;", startOfYear, startOfNextYear)
+	} else {
+		whereClause = "where version_parent = null;"
+	}
+
 	query := strings.TrimSpace(fmt.Sprintf(`
 search "%s";
 fields name,cover.image_id,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date;
-where version_parent = null & first_release_date >= %d & first_release_date < %d;
+%s
 limit 1;
-`, title, startOfYear, startOfNextYear))
+`, title, whereClause))
 
 	req, err := http.NewRequest("POST", igdbBaseURL+"/games", strings.NewReader(query))
 	if err != nil {
