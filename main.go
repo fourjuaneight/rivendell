@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/fourjuaneight/rivendell/helpers"
@@ -47,12 +48,35 @@ func archive(name string, url string, typeName string) (string, error) {
 	return archiveUrl, nil
 }
 
+func downloadCover(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("[downloadCover][http.Get]: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("[downloadCover][io.ReadAll]: %w", err)
+	}
+	return data, nil
+}
+
+func uploadCoverToB2(coverURL, b2Path string) (string, error) {
+	data, err := downloadCover(coverURL)
+	if err != nil {
+		return "", fmt.Errorf("[uploadCoverToB2]: %w", err)
+	}
+	return helpers.UploadToB2(data, b2Path, "image/jpeg")
+}
+
+// ── Enrichers ────────────────────────────────────────────────────────────────
+
 func enrichBookmarks(r *core.Record) (bool, error) {
 	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), r.GetString("type"))
 	if err != nil {
 		return false, fmt.Errorf("[enrichBookmarks]: %w", err)
 	}
-
 	r.Set("archive", archiveURL)
 	return true, nil
 }
@@ -62,7 +86,6 @@ func enrichGithub(r *core.Record) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("[enrichGithub]: %w", err)
 	}
-
 	r.Set("name", repo.Name)
 	r.Set("owner", repo.Owner)
 	r.Set("description", repo.Description)
@@ -100,28 +123,20 @@ func enrichMtg(r *core.Record) (bool, error) {
 
 	// Download front image from Scryfall, upload to B2, store B2 URL.
 	if card.Image != "" {
-		imageData, err := downloadCover(card.Image)
-		if err != nil {
-			return false, fmt.Errorf("[enrichMtg][downloadCover]: %w", err)
-		}
 		imagePath := fmt.Sprintf("MTG/%s/%s.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
-		b2ImageURL, err := helpers.UploadToB2(imageData, imagePath, "image/jpeg")
+		b2ImageURL, err := uploadCoverToB2(card.Image, imagePath)
 		if err != nil {
-			return false, fmt.Errorf("[enrichMtg][UploadToB2]: %w", err)
+			return false, fmt.Errorf("[enrichMtg]: %w", err)
 		}
 		r.Set("image", b2ImageURL)
 	}
 
 	// Same for back face when present.
 	if card.Back != nil && *card.Back != "" {
-		backData, err := downloadCover(*card.Back)
-		if err != nil {
-			return false, fmt.Errorf("[enrichMtg][downloadCover back]: %w", err)
-		}
 		backPath := fmt.Sprintf("MTG/%s/%s-back.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
-		b2BackURL, err := helpers.UploadToB2(backData, backPath, "image/jpeg")
+		b2BackURL, err := uploadCoverToB2(*card.Back, backPath)
 		if err != nil {
-			return false, fmt.Errorf("[enrichMtg][UploadToB2 back]: %w", err)
+			return false, fmt.Errorf("[enrichMtg]: %w", err)
 		}
 		r.Set("back", b2BackURL)
 	}
@@ -129,74 +144,157 @@ func enrichMtg(r *core.Record) (bool, error) {
 	return true, nil
 }
 
-func downloadCover(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("[downloadCover][http.Get]: %w", err)
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("[downloadCover][io.ReadAll]: %w", err)
-	}
-
-	return data, nil
-}
-
-func enrichMedia(r *core.Record) (bool, error) {
-	title := r.GetString("title")
-	mediaType := r.GetString("type")
-
-	var coverURL string
-
-	switch mediaType {
-	case "movies", "shows":
-		url, err := helpers.SearchMedia(title, r.GetInt("year"), mediaType)
-		if err != nil {
-			return false, fmt.Errorf("[enrichMedia]: %w", err)
-		}
-		coverURL = url
-	case "books":
-		if isbn := r.GetString("barcode"); isbn != "" {
-			book, err := helpers.GetBookInfo(isbn)
-			if err != nil {
-				return false, fmt.Errorf("[enrichMedia]: %w", err)
-			}
-			coverURL = book.CoverURL
-		}
-	case "games":
-		game, err := helpers.GetGameInfo(title, r.GetInt("year"))
-		if err != nil {
-			return false, fmt.Errorf("[enrichMedia]: %w", err)
-		}
-		coverURL = game.CoverURL
-	case "cds", "vinyls":
-		music, err := helpers.GetMusicInfo(title, r.GetString("creator"), r.GetInt("year"), mediaType)
-		if err != nil {
-			return false, fmt.Errorf("[enrichMedia]: %w", err)
-		}
-		coverURL = music.CoverURL
-	}
-
-	if coverURL == "" {
+func enrichBooks(r *core.Record) (bool, error) {
+	isbn := r.GetString("isbn")
+	if isbn == "" {
 		return false, nil
 	}
 
-	imageData, err := downloadCover(coverURL)
+	book, err := helpers.GetBookInfo(isbn)
 	if err != nil {
-		return false, fmt.Errorf("[enrichMedia]: %w", err)
+		return false, fmt.Errorf("[enrichBooks]: %w", err)
 	}
 
-	path := fmt.Sprintf("Media/%s/%s.jpeg", utils.ToCapitalized(mediaType), utils.FileNameFmt(title))
-	b2URL, err := helpers.UploadToB2(imageData, path, "image/jpeg")
-	if err != nil {
-		return false, fmt.Errorf("[enrichMedia]: %w", err)
+	var needsSave bool
+	if book.Year != 0 {
+		r.Set("year", book.Year)
+		needsSave = true
 	}
-
-	r.Set("cover", b2URL)
-	return true, nil
+	if book.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(book.CoverURL, fmt.Sprintf("Books/%s.jpeg", utils.FileNameFmt(r.GetString("title"))))
+		if err != nil {
+			return false, fmt.Errorf("[enrichBooks]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
 }
+
+func enrichCds(r *core.Record) (bool, error) {
+	album := r.GetString("album")
+	music, err := helpers.GetMusicInfo(album, r.GetString("artist"), r.GetInt("year"), r.GetString("barcode"), "cds")
+	if err != nil {
+		return false, fmt.Errorf("[enrichCds]: %w", err)
+	}
+
+	var needsSave bool
+	if music.Year != "" {
+		if y, err := strconv.Atoi(music.Year); err == nil && y != 0 {
+			r.Set("year", y)
+			needsSave = true
+		}
+	}
+	if music.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(music.CoverURL, fmt.Sprintf("CDs/%s.jpeg", utils.FileNameFmt(album)))
+		if err != nil {
+			return false, fmt.Errorf("[enrichCds]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
+}
+
+func enrichGames(r *core.Record) (bool, error) {
+	title := r.GetString("title")
+	game, err := helpers.GetGameInfo(title, r.GetInt("year"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichGames]: %w", err)
+	}
+
+	var needsSave bool
+	if game.Year != 0 {
+		r.Set("year", game.Year)
+		needsSave = true
+	}
+	if game.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(game.CoverURL, fmt.Sprintf("Games/%s.jpeg", utils.FileNameFmt(title)))
+		if err != nil {
+			return false, fmt.Errorf("[enrichGames]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
+}
+
+func enrichMovies(r *core.Record) (bool, error) {
+	title := r.GetString("title")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), "movies")
+	if err != nil {
+		return false, fmt.Errorf("[enrichMovies]: %w", err)
+	}
+
+	var needsSave bool
+	if media.Year != "" {
+		if y, err := strconv.Atoi(media.Year); err == nil && y != 0 {
+			r.Set("year", y)
+			needsSave = true
+		}
+	}
+	if media.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(media.CoverURL, fmt.Sprintf("Movies/%s.jpeg", utils.FileNameFmt(title)))
+		if err != nil {
+			return false, fmt.Errorf("[enrichMovies]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
+}
+
+func enrichShows(r *core.Record) (bool, error) {
+	title := r.GetString("title")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), "shows")
+	if err != nil {
+		return false, fmt.Errorf("[enrichShows]: %w", err)
+	}
+
+	var needsSave bool
+	if media.Year != "" {
+		if y, err := strconv.Atoi(media.Year); err == nil && y != 0 {
+			r.Set("year", y)
+			needsSave = true
+		}
+	}
+	if media.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(media.CoverURL, fmt.Sprintf("Shows/%s.jpeg", utils.FileNameFmt(title)))
+		if err != nil {
+			return false, fmt.Errorf("[enrichShows]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
+}
+
+func enrichVinyls(r *core.Record) (bool, error) {
+	album := r.GetString("album")
+	music, err := helpers.GetMusicInfo(album, r.GetString("artist"), r.GetInt("year"), r.GetString("barcode"), "vinyls")
+	if err != nil {
+		return false, fmt.Errorf("[enrichVinyls]: %w", err)
+	}
+
+	var needsSave bool
+	if music.Year != "" {
+		if y, err := strconv.Atoi(music.Year); err == nil && y != 0 {
+			r.Set("year", y)
+			needsSave = true
+		}
+	}
+	if music.CoverURL != "" {
+		b2URL, err := uploadCoverToB2(music.CoverURL, fmt.Sprintf("Vinyls/%s.jpeg", utils.FileNameFmt(album)))
+		if err != nil {
+			return false, fmt.Errorf("[enrichVinyls]: %w", err)
+		}
+		r.Set("cover", b2URL)
+		needsSave = true
+	}
+	return needsSave, nil
+}
+
+// ── Meta name resolvers ───────────────────────────────────────────────────────
 
 // resolveTagNames looks up meta records by name and returns their IDs.
 // Allows callers to send tag names instead of opaque relation IDs.
@@ -233,6 +331,8 @@ func resolveMetaName(app core.App, name, metaType string) (string, error) {
 	return record.Id, nil
 }
 
+// ── Preparers ─────────────────────────────────────────────────────────────────
+
 func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
 	r.Set("dead", false)
 	r.Set("shared", false)
@@ -247,16 +347,46 @@ func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
 	return nil
 }
 
-func prepareMedia(app core.App, r *core.Record) error {
-	if genreName := r.GetString("genre"); genreName != "" {
-		genreID, err := resolveMetaName(app, genreName, "genre")
+func prepareWithGenre(app core.App, r *core.Record) error {
+	if name := r.GetString("genre"); name != "" {
+		id, err := resolveMetaName(app, name, "genre")
 		if err != nil {
-			return fmt.Errorf("[prepareMedia]: %w", err)
+			return fmt.Errorf("[prepareWithGenre]: %w", err)
 		}
-		r.Set("genre", genreID)
+		r.Set("genre", id)
 	}
 	return nil
 }
+
+func prepareMovieOrShow(app core.App, r *core.Record) error {
+	if err := prepareWithGenre(app, r); err != nil {
+		return err
+	}
+	if name := r.GetString("definition"); name != "" {
+		id, err := resolveMetaName(app, name, "definition")
+		if err != nil {
+			return fmt.Errorf("[prepareMovieOrShow]: %w", err)
+		}
+		r.Set("definition", id)
+	}
+	return nil
+}
+
+func prepareGame(app core.App, r *core.Record) error {
+	if err := prepareWithGenre(app, r); err != nil {
+		return err
+	}
+	if name := r.GetString("platform"); name != "" {
+		id, err := resolveMetaName(app, name, "platform")
+		if err != nil {
+			return fmt.Errorf("[prepareGame]: %w", err)
+		}
+		r.Set("platform", id)
+	}
+	return nil
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 func main() {
 	app := pocketbase.New()
@@ -272,7 +402,12 @@ func main() {
 	preparers := map[string]func(core.App, *core.Record) error{
 		"bookmarks": prepareBookmarkOrFeed,
 		"feeds":     prepareBookmarkOrFeed,
-		"media":     prepareMedia,
+		"books":     prepareWithGenre,
+		"cds":       prepareWithGenre,
+		"games":     prepareGame,
+		"movies":    prepareMovieOrShow,
+		"shows":     prepareMovieOrShow,
+		"vinyls":    prepareWithGenre,
 	}
 
 	// enrichers run after e.Next() — call external APIs and write enriched fields back.
@@ -280,10 +415,18 @@ func main() {
 		"bookmarks": enrichBookmarks,
 		"github":    enrichGithub,
 		"mtg":       enrichMtg,
-		"media":     enrichMedia,
+		"books":     enrichBooks,
+		"cds":       enrichCds,
+		"games":     enrichGames,
+		"movies":    enrichMovies,
+		"shows":     enrichShows,
+		"vinyls":    enrichVinyls,
 	}
 
-	app.OnRecordCreateRequest("bookmarks", "feeds", "github", "mtg", "media").BindFunc(func(e *core.RecordRequestEvent) error {
+	app.OnRecordCreateRequest(
+		"bookmarks", "feeds", "github", "mtg",
+		"books", "cds", "games", "movies", "shows", "vinyls",
+	).BindFunc(func(e *core.RecordRequestEvent) error {
 		if fn := preparers[e.Collection.Name]; fn != nil {
 			if err := fn(e.App, e.Record); err != nil {
 				return fmt.Errorf("[OnRecordCreateRequest]: %w", err)
