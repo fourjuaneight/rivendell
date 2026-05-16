@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-05-16
+
+### Features
+
+- Split unified `media` collection into six type-specific collections: `books`, `cds`, `games`, `movies`, `shows`, `vinyls`.
+- Add cover image auto-enrichment for all media collections: OpenLibrary (books), Discogs (cds/vinyls), IGDB (games), TMDB (movies/shows). Images uploaded to Backblaze B2.
+- Add year auto-enrichment for all media collections from the same external APIs.
+- Add `getBookInfo.go`: OpenLibrary ISBN lookup returning title, year, and cover URL.
+- Add `getGameInfo.go`: IGDB game search with Twitch OAuth2 client credentials and token caching.
+- Add `getMusicInfo.go`: Discogs album lookup with barcode-first search and CD/vinyl format filtering.
+- Update `getMediaInfo.go` (`SearchMedia`): returns full `CleanMedia` struct including cover URL; makes search + details calls to TMDB.
+- Add `GetSingleFile` in `getContent.go`: captures full-page HTML snapshots via SingleFile CLI and uploads to B2 alongside article markdown archives.
+- Add MTG card image upload to B2 for both front and back faces.
+- Add preparer+enricher dispatch map pattern in `main.go`: preparers resolve relation names to IDs before save; enrichers call external APIs and write fields back after save.
+- Add `resolveMetaName` and `resolveTagNames` helpers: callers pass name strings; hooks resolve to meta record IDs.
+- Add `uploadCoverToB2` shared helper in `main.go` to DRY the download+upload pattern across all enrichers.
+
+### Bug Fixes
+
+- Fix Scryfall 400 errors: switch from search endpoint to direct `GET /cards/:set/:number`; add required `User-Agent` and `Accept: application/json` headers.
+- Fix Scryfall `CMC` type: changed `int` to `float64` to handle values like `8.0`.
+- Fix TMDB GET requests: `getDirector` and `GetMediaInfo` were incorrectly using POST.
+- Fix stale migrations referencing removed `media` collection; converted to no-ops.
+
+### Miscellaneous Tasks
+
+- Update PocketBase to v0.38.0.
+- Add `chromium`, `nodejs`, `npm`, and `single-file-cli` to Dockerfile.
+- Add Docker healthcheck for the app service.
+
 ## [1.4.0] - 2023-06-22
 
 ### Bug Fixes

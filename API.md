@@ -39,16 +39,22 @@ const { token } = await res.json();
 
 Pass as `Authorization: {token}` — no `Bearer` prefix — on all read/update requests.
 
+## Relation name resolution
+
+For `genre`, `definition`, and `platform` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works.
+
+For `tags` fields on `bookmarks` and `feeds`, pass an array of meta record IDs.
+
 ## Collections
 
 ### Auto-enriched on create
 
-These collections require minimal input — the server fetches and fills remaining fields automatically.
+The server fetches and fills additional fields automatically after the record is saved.
 
 #### bookmarks
 
-Send: `title`, `creator`, `url`, `type`, `tags`, `comments` (optional)
-Server sets: `dead = false`, `shared = false`, `archive` (fetches content, uploads to B2)
+Send: `title`, `creator`, `url`, `type`, `tags` — optionally `comments`
+Server sets: `dead = false`, `shared = false`, `archive` (content archived to B2)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/bookmarks/records' \
@@ -102,7 +108,7 @@ const record = await res.json();
 #### mtg
 
 Send: `name`, `set` (set code), `collector_number`
-Server sets: `colors`, `type`, `set_name`, `oracle_text`, `flavor_text`, `rarity`, `artist`, `released_at`, `image`, `back` (fetched from Scryfall)
+Server sets: all card fields + `image` and `back` (uploaded to B2) from Scryfall
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/mtg/records' \
@@ -123,13 +129,187 @@ const res = await fetch(`${BASE_URL}/api/collections/mtg/records`, {
 const record = await res.json();
 ```
 
-### Full manual entry
+#### books
+
+Send: `title`, `author` — optionally `isbn`, `genre` (name), `year`, `comments`
+Server sets: `year` (from OpenLibrary if ISBN provided), `cover` (B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/books/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Nineteen Eighty-Four",
+    "author": "George Orwell",
+    "isbn": "9780451524935",
+    "genre": "fiction"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/books/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Nineteen Eighty-Four',
+    author: 'George Orwell',
+    isbn: '9780451524935',
+    genre: 'fiction',
+  }),
+});
+const record = await res.json();
+```
+
+#### cds
+
+Send: `album`, `artist` — optionally `barcode`, `genre` (name), `year`, `comments`
+Server sets: `year` and `cover` (from Discogs, B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/cds/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "album": "Lateralus",
+    "artist": "Tool",
+    "barcode": "0828768199121",
+    "genre": "rock"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/cds/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    album: 'Lateralus',
+    artist: 'Tool',
+    barcode: '0828768199121',
+    genre: 'rock',
+  }),
+});
+const record = await res.json();
+```
+
+#### games
+
+Send: `title` — optionally `publisher`, `barcode`, `genre` (name), `platform` (name), `year`, `comments`
+Server sets: `year` and `cover` (from IGDB, B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/games/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Hollow Knight",
+    "genre": "action",
+    "platform": "pc"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/games/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Hollow Knight',
+    genre: 'action',
+    platform: 'pc',
+  }),
+});
+const record = await res.json();
+```
+
+#### movies
+
+Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `year`, `comments`
+Server sets: `year` and `cover` (from TMDB, B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/movies/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Blade Runner 2049",
+    "director": "Denis Villeneuve",
+    "genre": "sci-fi",
+    "definition": "4k"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/movies/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Blade Runner 2049',
+    director: 'Denis Villeneuve',
+    genre: 'sci-fi',
+    definition: '4k',
+  }),
+});
+const record = await res.json();
+```
+
+#### shows
+
+Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `year`, `comments`
+Server sets: `year` and `cover` (from TMDB, B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/shows/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Severance",
+    "genre": "drama",
+    "definition": "1080p"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/shows/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Severance',
+    genre: 'drama',
+    definition: '1080p',
+  }),
+});
+const record = await res.json();
+```
+
+#### vinyls
+
+Send: `album`, `artist` — optionally `barcode`, `genre` (name), `year`, `comments`
+Server sets: `year` and `cover` (from Discogs, B2 URL)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/vinyls/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "album": "Kind of Blue",
+    "artist": "Miles Davis",
+    "genre": "jazz"
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/vinyls/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    album: 'Kind of Blue',
+    artist: 'Miles Davis',
+    genre: 'jazz',
+  }),
+});
+const record = await res.json();
+```
+
+### Manual entry
 
 All fields must be provided by the caller.
 
 #### feeds
 
-Send: `title`, `url`, `type`, `tags` — and optionally `rss`, `comments`
+Send: `title`, `url`, `type`, `tags` — optionally `rss`, `comments`
 Server sets: `dead = false`, `shared = false`
 
 ```sh
@@ -160,37 +340,6 @@ const record = await res.json();
 ```
 
 `type` options: `podcasts` · `websites` · `youtube`
-
-#### media
-
-```sh
-curl -X POST '{BASE_URL}/api/collections/media/records' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "title": "Album Title",
-    "creator": "Artist Name",
-    "genre": "meta_record_id",
-    "year": 1991,
-    "type": "cds"
-  }'
-```
-
-```js
-const res = await fetch(`${BASE_URL}/api/collections/media/records`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    title: 'Album Title',
-    creator: 'Artist Name',
-    genre: 'meta_record_id',
-    year: 1991,
-    type: 'cds',
-  }),
-});
-const record = await res.json();
-```
-
-`type` options: `books` · `cds` · `games` · `movies` · `shows` · `vinyls`
 
 #### records
 
@@ -225,7 +374,7 @@ const record = await res.json();
 
 #### meta
 
-Lookup values for `tags` and `genre` fields used by other collections.
+Lookup values for `tags`, `genre`, `definition`, and `platform` fields used by other collections.
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/meta/records' \
@@ -242,9 +391,9 @@ const res = await fetch(`${BASE_URL}/api/collections/meta/records`, {
 const record = await res.json();
 ```
 
-`type` options: `tags` · `genre`
+`type` options: `definition` · `genre` · `platform` · `tags`
 
-The `id` returned here is what you pass as the relation value in `bookmarks.tags`, `feeds.tags`, `media.genre`.
+The `id` returned here is what you pass as relation values in `bookmarks.tags` and `feeds.tags`. For `genre`, `definition`, and `platform` on media collections, you can pass the name string directly — the server resolves it.
 
 ## Updating records
 
@@ -277,13 +426,13 @@ Common update use cases:
 ## Listing / querying records
 
 ```sh
-curl '{BASE_URL}/api/collections/{collection}/records?filter=type%3D"movies"&sort=-created&page=1&perPage=30' \
+curl '{BASE_URL}/api/collections/{collection}/records?filter=genre%3D"rock"&sort=-created&page=1&perPage=30' \
   -H 'Authorization: {token}'
 ```
 
 ```js
 const params = new URLSearchParams({
-  filter: 'type = "movies"',
+  filter: 'genre = "rock"',
   sort: '-created',
   page: 1,
   perPage: 30,
