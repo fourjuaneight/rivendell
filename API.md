@@ -37,7 +37,7 @@ const { token } = await res.json();
 
 ### Use the token
 
-Pass as `Authorization: {token}` — no `Bearer` prefix — on all read/update requests.
+Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 ## Relation name resolution
 
