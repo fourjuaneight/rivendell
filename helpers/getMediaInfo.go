@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
 	"net/http"
 	neturl "net/url"
 	"regexp"
 	"strings"
+
+	"github.com/sahilm/fuzzy"
 )
 
 type Movie struct {
@@ -184,6 +187,20 @@ type CleanMedia struct {
 	CoverURL string
 }
 
+type searchResult struct {
+	Results []struct {
+		ID    int    `json:"id"`
+		Title string `json:"title"` // movies
+		Name  string `json:"name"`  // tv
+	} `json:"results"`
+}
+
+type seasonImages struct {
+	Posters []struct {
+		FilePath string `json:"file_path"`
+	} `json:"posters"`
+}
+
 func parseTMDBURL(url string) (TypeData, error) {
 	regex, err := regexp.Compile(`https?:\/\/[^/]+\/(movie|tv)\/([0-9]+)-?.*`)
 	if err != nil {
@@ -208,14 +225,12 @@ func getDirector(category string, id string) (string, error) {
 
 	// DOCS: https://developer.themoviedb.org/reference/movie-credits (movie)
 	//       https://developer.themoviedb.org/reference/tv-series-credits (tv)
-	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s/credits", category, id)
+	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s/credits?api_key=%s", category, id, token)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return "", fmt.Errorf("[getCredits][http.NewRequest]: %w", err)
 	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -233,7 +248,7 @@ func getDirector(category string, id string) (string, error) {
 	var results Credits
 	err = json.Unmarshal(body, &results)
 	if err != nil {
-		return "", fmt.Errorf("[GetRepoInfo][json.Unmarshal]: %w", err)
+		return "", fmt.Errorf("[getCredits][json.Unmarshal]: %w", err)
 	}
 
 	var creators []string
@@ -259,14 +274,12 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 
 	// DOCS: https://developer.themoviedb.org/reference/movie-details (movie)
 	//       https://developer.themoviedb.org/reference/tv-series-details (tv)
-	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s", data.category, data.id)
+	endpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%s?api_key=%s", data.category, data.id, token)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][http.NewRequest]: %w", err)
 	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -283,7 +296,7 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 
 	creator, err := getDirector(data.category, data.id)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]%w", err)
+		return CleanMedia{}, fmt.Errorf("[GetMediaInfo]: %w", err)
 	}
 
 	if data.category == "movie" {
@@ -333,18 +346,17 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 	}, nil
 }
 
-type searchResult struct {
-	Results []struct {
-		ID int `json:"id"`
-	} `json:"results"`
-}
-
 func tmdbGet(token, endpoint string) ([]byte, error) {
-	req, err := http.NewRequest("GET", endpoint, nil)
+	sep := "?"
+	if strings.Contains(endpoint, "?") {
+		sep = "&"
+	}
+	url := endpoint + sep + "api_key=" + token
+
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("[tmdbGet][http.NewRequest]: %w", err)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
@@ -356,34 +368,38 @@ func tmdbGet(token, endpoint string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[tmdbGet][io.ReadAll]: %w", err)
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("[tmdbGet]: %s", resp.Status)
+	}
+
 	return body, nil
 }
 
-// SearchMedia searches TMDB by title/year and returns a full CleanMedia for the first result.
+// SearchMedia searches TMDB by title/year and returns a full CleanMedia for the best result.
+// For shows, fetches the season-specific poster; season=0 means the whole series, uses season 1.
 // Used by the create hook. GetMediaInfo is available for URL-based full detail lookups.
-func SearchMedia(title string, year int, mediaType string) (CleanMedia, error) {
+func SearchMedia(title string, year int, season int, mediaType string) (CleanMedia, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]: [GetKeys]: %w", err)
 	}
 
 	category := "movie"
-	yearParam := "primary_release_year"
 	if mediaType == "shows" {
 		category = "tv"
-		yearParam = "first_air_date_year"
 	}
 
 	// DOCS: https://developer.themoviedb.org/reference/search-movie (movies)
 	//       https://developer.themoviedb.org/reference/search-tv (shows)
 	searchEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/search/%s?query=%s", category, neturl.QueryEscape(title))
 	if year != 0 {
-		searchEndpoint += fmt.Sprintf("&%s=%d", yearParam, year)
+		searchEndpoint += fmt.Sprintf("&year=%d", year)
 	}
 
 	searchBody, err := tmdbGet(token, searchEndpoint)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]: %w", err)
 	}
 
 	var results searchResult
@@ -395,12 +411,27 @@ func SearchMedia(title string, year int, mediaType string) (CleanMedia, error) {
 		return CleanMedia{}, fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
 	}
 
+	// Fuzzy-match the input title against all returned titles to handle
+	// minor differences between stored and TMDB titles.
+	titles := make([]string, len(results.Results))
+	for i, r := range results.Results {
+		if category == "movie" {
+			titles[i] = r.Title
+		} else {
+			titles[i] = r.Name
+		}
+	}
+	bestIdx := 0
+	if matches := fuzzy.Find(title, titles); len(matches) > 0 {
+		bestIdx = matches[0].Index
+	}
+
 	// DOCS: https://developer.themoviedb.org/reference/movie-details (movie)
 	//       https://developer.themoviedb.org/reference/tv-series-details (tv)
-	detailEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%d", category, results.Results[0].ID)
+	detailEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%d", category, results.Results[bestIdx].ID)
 	detailBody, err := tmdbGet(token, detailEndpoint)
 	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[SearchMedia]%w", err)
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]: %w", err)
 	}
 
 	if category == "movie" {
@@ -443,6 +474,22 @@ func SearchMedia(title string, year int, mediaType string) (CleanMedia, error) {
 	coverURL := ""
 	if tv.PosterPath != "" {
 		coverURL = "https://image.tmdb.org/t/p/original" + tv.PosterPath
+	}
+	// DOCS: https://developer.themoviedb.org/reference/tv-season-images
+	// season == 0 means whole series — fall back to season 1 poster.
+	seasonNum := season
+	if seasonNum == 0 {
+		seasonNum = 1
+	}
+	{
+		imgEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/season/%d/images", tv.ID, seasonNum)
+		imgBody, imgErr := tmdbGet(token, imgEndpoint)
+		if imgErr == nil {
+			var imgs seasonImages
+			if jsonErr := json.Unmarshal(imgBody, &imgs); jsonErr == nil && len(imgs.Posters) > 0 {
+				coverURL = "https://image.tmdb.org/t/p/original" + imgs.Posters[0].FilePath
+			}
+		}
 	}
 	releaseYear := year
 	if len(tv.FirstAirDate) >= 4 {

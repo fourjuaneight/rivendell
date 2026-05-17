@@ -221,7 +221,7 @@ func enrichGames(r *core.Record) (bool, error) {
 
 func enrichMovies(r *core.Record) (bool, error) {
 	title := r.GetString("title")
-	media, err := helpers.SearchMedia(title, r.GetInt("year"), "movies")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), 0, "movies")
 	if err != nil {
 		return false, fmt.Errorf("[enrichMovies]: %w", err)
 	}
@@ -246,7 +246,7 @@ func enrichMovies(r *core.Record) (bool, error) {
 
 func enrichShows(r *core.Record) (bool, error) {
 	title := r.GetString("title")
-	media, err := helpers.SearchMedia(title, r.GetInt("year"), "shows")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), r.GetInt("season"), "shows")
 	if err != nil {
 		return false, fmt.Errorf("[enrichShows]: %w", err)
 	}

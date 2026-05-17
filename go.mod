@@ -19,6 +19,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/sahilm/fuzzy v0.1.2 // indirect
 	github.com/stretchr/testify v1.8.2 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/sync v0.20.0 // indirect

@@ -19,7 +19,7 @@ Personal bookmarking, media collection, and archiving database powered by [Pocke
 - Access to the external APIs used by the helpers:
   - Backblaze B2: `B2_APP_KEY_ID`, `B2_APP_KEY`, `B2_BUCKET_ID`, `B2_BUCKET_NAME`
   - GitHub GraphQL: `GH_TOKEN`, `GH_USERNAME`
-  - The Movie Database (movies, shows): `TMDB_KEY`
+  - The Movie Database (movies, shows): `TMDB_KEY` (v3 API Key — Settings → API → API Key)
   - IGDB via Twitch OAuth (games): `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`
   - Discogs (CDs, vinyls): `DISCOGS_TOKEN`
   - YouTube Data API v3: `YOUTUBE_KEY`
