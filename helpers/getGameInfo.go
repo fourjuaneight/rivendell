@@ -180,7 +180,7 @@ limit 1;
 
 	coverURL := ""
 	if game.Cover != nil && game.Cover.ImageID != "" {
-		coverURL = fmt.Sprintf("%s/t_cover_big/%s.jpg", igdbImageBaseURL, game.Cover.ImageID)
+		coverURL = fmt.Sprintf("%s/t_original/%s.jpg", igdbImageBaseURL, game.Cover.ImageID)
 	}
 
 	releaseYear := year
