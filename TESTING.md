@@ -50,6 +50,7 @@ Tests URL parsing functions used to extract IDs and metadata before API calls. A
 | `parseTMDBURL` | 3 | Movie URL extracts ID and `movie` category; TV URL extracts ID and `tv` category; URL without slug |
 | `cleanYTURL` | 3 | Short `youtu.be` URL; full `youtube.com/watch?v=` URL; `youtube.com` without `www` — all extract same video ID |
 | `escapeText` | 4 | Newlines escaped to `\n` literals; no-newline passthrough; multiple newlines; empty string |
+| `parseDiscogsTitle` | 5 | Standard `Artist - Album` format; artist with dash in name; album with dash (preserves remainder after first separator); no separator returns empty artist and full string as album; empty string |
 
 ## Bugs found during testing
 

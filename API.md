@@ -41,7 +41,7 @@ Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 ## Relation name resolution
 
-For `genre`, `definition`, and `platform` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works.
+For `genre`, `definition`, and `platform` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works. If no matching meta record is found the field is silently cleared — the record is still created.
 
 For `tags` fields on `bookmarks` and `feeds`, pass an array of meta record IDs.
 
@@ -249,8 +249,8 @@ const record = await res.json();
 
 #### shows
 
-Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `year`, `comments`
-Server sets: `year` and `cover` (from TMDB, B2 URL)
+Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `season`, `year`, `comments`
+Server sets: `year` and `cover` (from TMDB season poster if `season` provided, else show poster, B2 URL)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/shows/records' \
@@ -401,7 +401,7 @@ All updates require auth.
 
 ```sh
 curl -X PATCH '{BASE_URL}/api/collections/{collection}/records/{id}' \
-  -H 'Authorization: {token}' \
+  -H 'Authorization: Bearer {token}' \
   -H 'Content-Type: application/json' \
   -d '{"field": "new_value"}'
 ```
@@ -411,7 +411,7 @@ const res = await fetch(`${BASE_URL}/api/collections/${collection}/records/${id}
   method: 'PATCH',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': token,
+    'Authorization': `Bearer ${token}`,
   },
   body: JSON.stringify({ field: 'new_value' }),
 });
@@ -427,7 +427,7 @@ Common update use cases:
 
 ```sh
 curl '{BASE_URL}/api/collections/{collection}/records?filter=genre%3D"rock"&sort=-created&page=1&perPage=30' \
-  -H 'Authorization: {token}'
+  -H 'Authorization: Bearer {token}'
 ```
 
 ```js
@@ -438,7 +438,7 @@ const params = new URLSearchParams({
   perPage: 30,
 });
 const res = await fetch(`${BASE_URL}/api/collections/${collection}/records?${params}`, {
-  headers: { 'Authorization': token },
+  headers: { 'Authorization': `Bearer ${token}` },
 });
 const { items, totalItems, totalPages } = await res.json();
 ```
