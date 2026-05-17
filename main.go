@@ -25,8 +25,8 @@ func archive(name string, url string, typeName string) (string, error) {
 
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
-	path := fmt.Sprintf("Bookmarks/%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
-	archiveUrl, err := helpers.UploadToB2(media, path, typeOps.MIME)
+	filename := fmt.Sprintf("%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
+	archiveUrl, err := helpers.UploadToB2(media, "bookmarks", filename, typeOps.MIME)
 	if err != nil {
 		return "", fmt.Errorf("[archive][UploadToB2]: %w", err)
 	}
@@ -38,8 +38,8 @@ func archive(name string, url string, typeName string) (string, error) {
 		if sfErr != nil {
 			log.Printf("[archive][GetSingleFile]: %v", sfErr)
 		} else {
-			sfPath := fmt.Sprintf("Bookmarks/Articles/%s.html", utils.FileNameFmt(name))
-			if _, sfUploadErr := helpers.UploadToB2(sfData, sfPath, "text/html"); sfUploadErr != nil {
+			sfFilename := fmt.Sprintf("Articles/%s.html", utils.FileNameFmt(name))
+			if _, sfUploadErr := helpers.UploadToB2(sfData, "bookmarks", sfFilename, "text/html"); sfUploadErr != nil {
 				log.Printf("[archive][UploadToB2 SingleFile]: %v", sfUploadErr)
 			}
 		}
@@ -62,12 +62,12 @@ func downloadCover(url string) ([]byte, error) {
 	return data, nil
 }
 
-func uploadCoverToB2(coverURL, b2Path string) (string, error) {
+func uploadCoverToB2(coverURL, collection, filename string) (string, error) {
 	data, err := downloadCover(coverURL)
 	if err != nil {
 		return "", fmt.Errorf("[uploadCoverToB2]: %w", err)
 	}
-	return helpers.UploadToB2(data, b2Path, "image/jpeg")
+	return helpers.UploadToB2(data, collection, filename, "image/jpeg")
 }
 
 // ── Enrichers ────────────────────────────────────────────────────────────────
@@ -123,8 +123,8 @@ func enrichMtg(r *core.Record) (bool, error) {
 
 	// Download front image from Scryfall, upload to B2, store B2 URL.
 	if card.Image != "" {
-		imagePath := fmt.Sprintf("MTG/%s/%s.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
-		b2ImageURL, err := uploadCoverToB2(card.Image, imagePath)
+		imageFile := fmt.Sprintf("%s/%s.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
+		b2ImageURL, err := uploadCoverToB2(card.Image, "mtg", imageFile)
 		if err != nil {
 			return false, fmt.Errorf("[enrichMtg]: %w", err)
 		}
@@ -133,8 +133,8 @@ func enrichMtg(r *core.Record) (bool, error) {
 
 	// Same for back face when present.
 	if card.Back != nil && *card.Back != "" {
-		backPath := fmt.Sprintf("MTG/%s/%s-back.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
-		b2BackURL, err := uploadCoverToB2(*card.Back, backPath)
+		backFile := fmt.Sprintf("%s/%s-back.jpeg", r.GetString("set"), utils.FileNameFmt(r.GetString("name")))
+		b2BackURL, err := uploadCoverToB2(*card.Back, "mtg", backFile)
 		if err != nil {
 			return false, fmt.Errorf("[enrichMtg]: %w", err)
 		}
@@ -161,7 +161,7 @@ func enrichBooks(r *core.Record) (bool, error) {
 		needsSave = true
 	}
 	if book.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(book.CoverURL, fmt.Sprintf("Books/%s.jpeg", utils.FileNameFmt(r.GetString("title"))))
+		b2URL, err := uploadCoverToB2(book.CoverURL, "books", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(r.GetString("title"))))
 		if err != nil {
 			return false, fmt.Errorf("[enrichBooks]: %w", err)
 		}
@@ -186,7 +186,7 @@ func enrichCds(r *core.Record) (bool, error) {
 		}
 	}
 	if music.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(music.CoverURL, fmt.Sprintf("CDs/%s.jpeg", utils.FileNameFmt(album)))
+		b2URL, err := uploadCoverToB2(music.CoverURL, "cds", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(album)))
 		if err != nil {
 			return false, fmt.Errorf("[enrichCds]: %w", err)
 		}
@@ -209,7 +209,7 @@ func enrichGames(r *core.Record) (bool, error) {
 		needsSave = true
 	}
 	if game.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(game.CoverURL, fmt.Sprintf("Games/%s.jpeg", utils.FileNameFmt(title)))
+		b2URL, err := uploadCoverToB2(game.CoverURL, "games", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title)))
 		if err != nil {
 			return false, fmt.Errorf("[enrichGames]: %w", err)
 		}
@@ -234,7 +234,7 @@ func enrichMovies(r *core.Record) (bool, error) {
 		}
 	}
 	if media.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(media.CoverURL, fmt.Sprintf("Movies/%s.jpeg", utils.FileNameFmt(title)))
+		b2URL, err := uploadCoverToB2(media.CoverURL, "movies", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title)))
 		if err != nil {
 			return false, fmt.Errorf("[enrichMovies]: %w", err)
 		}
@@ -259,7 +259,7 @@ func enrichShows(r *core.Record) (bool, error) {
 		}
 	}
 	if media.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(media.CoverURL, fmt.Sprintf("Shows/%s.jpeg", utils.FileNameFmt(title)))
+		b2URL, err := uploadCoverToB2(media.CoverURL, "shows", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title)))
 		if err != nil {
 			return false, fmt.Errorf("[enrichShows]: %w", err)
 		}
@@ -284,7 +284,7 @@ func enrichVinyls(r *core.Record) (bool, error) {
 		}
 	}
 	if music.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(music.CoverURL, fmt.Sprintf("Vinyls/%s.jpeg", utils.FileNameFmt(album)))
+		b2URL, err := uploadCoverToB2(music.CoverURL, "vinyls", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(album)))
 		if err != nil {
 			return false, fmt.Errorf("[enrichVinyls]: %w", err)
 		}

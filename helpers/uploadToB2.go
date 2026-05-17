@@ -69,6 +69,18 @@ type B2UploadTokens struct {
 	DownloadUrl string
 }
 
+// pathMap maps collection names to their B2 folder names.
+var pathMap = map[string]string{
+	"bookmarks": "Bookmarks",
+	"books":     "Books",
+	"cds":       "CDs",
+	"games":     "Games",
+	"movies":    "Movies",
+	"mtg":       "MTG",
+	"shows":     "Shows",
+	"vinyls":    "Vinyls",
+}
+
 // Authorize B2 bucket for upload.
 // DOCS: https://www.backblaze.com/b2/docs/b2_authorize_account.html
 func AuthTokens() (B2AuthTokens, error) {
@@ -190,12 +202,21 @@ func GetUploadUrl() (B2UploadTokens, error) {
 }
 
 // Upload file to B2 bucket.
+// collection is the PocketBase collection name (e.g. "books") — looked up in pathMap to
+// determine the B2 subfolder. filename is the path within that folder (e.g. "cover.jpeg").
+// Full B2 path: PocketBase/{folder}/{filename}
 // DOCS: https://www.backblaze.com/b2/docs/b2_upload_file.html
-func UploadToB2(data []byte, name, fileType string) (string, error) {
+func UploadToB2(data []byte, collection, filename, fileType string) (string, error) {
 	authData, err := GetUploadUrl()
 	if err != nil {
 		return "", fmt.Errorf("[UploadToB2]%w", err)
 	}
+
+	folder, ok := pathMap[collection]
+	if !ok {
+		folder = collection
+	}
+	name := fmt.Sprintf("PocketBase/%s/%s", folder, filename)
 
 	hasher := sha1.New()
 	hasher.Write(data)
