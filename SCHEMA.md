@@ -112,10 +112,11 @@ TV show collection. Cover and year enriched from TMDB on create.
 |--------------|----------|----------|---------------------------------------|
 | `title`      | text     | yes      |                                       |
 | `director`   | text     | no       |                                       |
-| `barcode`    | text     | no       |                                       |
 | `genre`      | relation | no       | → `meta` (type: `genre`), max 1       |
+| `season`     | number   | no       |                                       |
 | `definition` | relation | no       | → `meta` (type: `definition`), max 1  |
 | `year`       | number   | no       | Set automatically                     |
+| `barcode`    | text     | no       |                                       |
 | `cover`      | url      | no       | Set automatically (B2 URL)            |
 | `comments`   | text     | no       |                                       |
 

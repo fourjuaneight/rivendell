@@ -217,7 +217,6 @@ func ShowsCollection() *core.Collection {
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "director"})
-	collection.Fields.Add(&core.TextField{Name: "barcode"})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "genre",
 		Required:      false,
@@ -225,6 +224,7 @@ func ShowsCollection() *core.Collection {
 		MaxSelect:     1,
 		CascadeDelete: false,
 	})
+	collection.Fields.Add(&core.NumberField{Name: "season"})
 	collection.Fields.Add(&core.RelationField{
 		Name:          "definition",
 		Required:      false,
@@ -233,6 +233,7 @@ func ShowsCollection() *core.Collection {
 		CascadeDelete: false,
 	})
 	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.TextField{Name: "barcode"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
