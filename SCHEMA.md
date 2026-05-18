@@ -6,7 +6,7 @@ Access rules unless noted: view/update require auth (`@request.auth.id != ''`), 
 
 ## meta
 
-Lookup table for tags, genres, definitions, and platforms. Referenced by `bookmarks`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, and `vinyls`.
+Lookup table for tags, genres, definitions, and platforms. Referenced by `bookmarks`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, `vinyls`, `read_later`, and `watch_later`.
 
 > ID is pinned via `META_ID` env var so relation fields can reference it at migration time.
 
@@ -165,6 +165,27 @@ Saved GitHub repositories. Enriched from GitHub API on create.
 | `owner`       | text | no       | Set automatically |
 | `description` | text | no       | Set automatically |
 | `language`    | text | no       | Set automatically |
+
+## read_later
+
+Articles and links saved to read later. All fields provided on create.
+
+| Field   | Type     | Required | Constraints     |
+|---------|----------|----------|-----------------|
+| `title` | text     | yes      |                 |
+| `link`  | url      | yes      |                 |
+| `tags`  | relation | yes      | → `meta`, max 5 |
+
+## watch_later
+
+YouTube videos saved to watch later. Title and channel fetched from YouTube API on create.
+
+| Field     | Type     | Required | Constraints                        |
+|-----------|----------|----------|------------------------------------|
+| `title`   | text     | no       | Set automatically from YouTube API |
+| `channel` | text     | no       | Set automatically from YouTube API |
+| `link`    | url      | yes      | YouTube URL                        |
+| `tags`    | relation | yes      | → `meta`, max 5                    |
 
 ## records
 

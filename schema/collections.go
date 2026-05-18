@@ -321,6 +321,47 @@ func GithubCollection() *core.Collection {
 	return collection
 }
 
+func ReadLaterCollection() *core.Collection {
+	collection := core.NewBaseCollection("read_later")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "link", Required: true})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "tags",
+		Required:      true,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     5,
+		CascadeDelete: false,
+	})
+
+	return collection
+}
+
+func WatchLaterCollection() *core.Collection {
+	collection := core.NewBaseCollection("watch_later")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title"})
+	collection.Fields.Add(&core.TextField{Name: "channel"})
+	collection.Fields.Add(&core.URLField{Name: "link", Required: true})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "tags",
+		Required:      true,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     5,
+		CascadeDelete: false,
+	})
+
+	return collection
+}
+
 func MetaCollection() *core.Collection {
 	collection := core.NewBaseCollection("meta")
 	authRule := "@request.auth.id != ''"

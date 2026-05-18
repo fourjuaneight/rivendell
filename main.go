@@ -294,6 +294,16 @@ func enrichVinyls(r *core.Record) (bool, error) {
 	return needsSave, nil
 }
 
+func enrichWatchLater(r *core.Record) (bool, error) {
+	yt, err := helpers.GetYTInfo(r.GetString("link"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichWatchLater]: %w", err)
+	}
+	r.Set("title", yt.Title)
+	r.Set("channel", yt.Creator)
+	return true, nil
+}
+
 // ── Meta name resolvers ───────────────────────────────────────────────────────
 
 // resolveTagNames looks up meta records by name and returns their IDs.
@@ -333,18 +343,21 @@ func resolveMetaName(app core.App, name, metaType string) (string, error) {
 
 // ── Preparers ─────────────────────────────────────────────────────────────────
 
-func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
-	r.Set("dead", false)
-	r.Set("shared", false)
-
+func prepareTags(app core.App, r *core.Record) error {
 	if tagNames := r.GetStringSlice("tags"); len(tagNames) > 0 {
 		tagIDs, err := resolveTagNames(app, tagNames)
 		if err != nil {
-			return fmt.Errorf("[prepareBookmarkOrFeed]: %w", err)
+			return fmt.Errorf("[prepareTags]: %w", err)
 		}
 		r.Set("tags", tagIDs)
 	}
 	return nil
+}
+
+func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
+	r.Set("dead", false)
+	r.Set("shared", false)
+	return prepareTags(app, r)
 }
 
 func prepareWithGenre(app core.App, r *core.Record) error {
@@ -400,32 +413,36 @@ func main() {
 
 	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
 	preparers := map[string]func(core.App, *core.Record) error{
-		"bookmarks": prepareBookmarkOrFeed,
-		"feeds":     prepareBookmarkOrFeed,
-		"books":     prepareWithGenre,
-		"cds":       prepareWithGenre,
-		"games":     prepareGame,
-		"movies":    prepareMovieOrShow,
-		"shows":     prepareMovieOrShow,
-		"vinyls":    prepareWithGenre,
+		"bookmarks":   prepareBookmarkOrFeed,
+		"feeds":       prepareBookmarkOrFeed,
+		"books":       prepareWithGenre,
+		"cds":         prepareWithGenre,
+		"games":       prepareGame,
+		"movies":      prepareMovieOrShow,
+		"shows":       prepareMovieOrShow,
+		"vinyls":      prepareWithGenre,
+		"read_later":  prepareTags,
+		"watch_later": prepareTags,
 	}
 
 	// enrichers run after e.Next() — call external APIs and write enriched fields back.
 	enrichers := map[string]func(*core.Record) (bool, error){
-		"bookmarks": enrichBookmarks,
-		"github":    enrichGithub,
-		"mtg":       enrichMtg,
-		"books":     enrichBooks,
-		"cds":       enrichCds,
-		"games":     enrichGames,
-		"movies":    enrichMovies,
-		"shows":     enrichShows,
-		"vinyls":    enrichVinyls,
+		"bookmarks":   enrichBookmarks,
+		"github":      enrichGithub,
+		"mtg":         enrichMtg,
+		"books":       enrichBooks,
+		"cds":         enrichCds,
+		"games":       enrichGames,
+		"movies":      enrichMovies,
+		"shows":       enrichShows,
+		"vinyls":      enrichVinyls,
+		"watch_later": enrichWatchLater,
 	}
 
 	app.OnRecordCreateRequest(
 		"bookmarks", "feeds", "github", "mtg",
 		"books", "cds", "games", "movies", "shows", "vinyls",
+		"read_later", "watch_later",
 	).BindFunc(func(e *core.RecordRequestEvent) error {
 		if fn := preparers[e.Collection.Name]; fn != nil {
 			if err := fn(e.App, e.Record); err != nil {
