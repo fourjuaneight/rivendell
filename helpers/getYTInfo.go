@@ -124,8 +124,8 @@ func GetYTInfo(url string) (CleanYT, error) {
 	video := response.Items[0].Snippet
 
 	return CleanYT{
-		Title:   utils.FileNameFmt(video.Title),
-		Creator: utils.FileNameFmt(video.ChannelTitle),
+		Title:   video.Title,
+		Creator: video.ChannelTitle,
 		URL:     urls.Link,
 	}, nil
 }
