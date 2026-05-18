@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
-	"github.com/fourjuaneight/rivendell/utils"
 )
 
 type YouTubeAPIEndpoint struct {
