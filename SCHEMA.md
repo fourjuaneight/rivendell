@@ -29,6 +29,7 @@ Saved articles, podcasts, and videos. Archived to Backblaze B2 on create.
 | `type`     | select   | yes      | `articles`, `podcasts`, `videos` (max: 1) |
 | `dead`     | bool     | no       | Defaults to `false` on create             |
 | `shared`   | bool     | no       | Defaults to `false` on create             |
+| `favorite` | bool     | no       | Defaults to `false` on create             |
 | `comments` | text     | no       |                                           |
 
 ## feeds

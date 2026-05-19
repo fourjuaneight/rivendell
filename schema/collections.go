@@ -63,6 +63,7 @@ func BookmarksCollection() *core.Collection {
 	})
 	collection.Fields.Add(&core.BoolField{Name: "dead"})
 	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection

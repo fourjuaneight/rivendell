@@ -354,7 +354,14 @@ func prepareTags(app core.App, r *core.Record) error {
 	return nil
 }
 
-func prepareBookmarkOrFeed(app core.App, r *core.Record) error {
+func prepareBookmark(app core.App, r *core.Record) error {
+	r.Set("dead", false)
+	r.Set("shared", false)
+	r.Set("favorite", false)
+	return prepareTags(app, r)
+}
+
+func prepareFeed(app core.App, r *core.Record) error {
 	r.Set("dead", false)
 	r.Set("shared", false)
 	return prepareTags(app, r)
@@ -413,8 +420,8 @@ func main() {
 
 	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
 	preparers := map[string]func(core.App, *core.Record) error{
-		"bookmarks":   prepareBookmarkOrFeed,
-		"feeds":       prepareBookmarkOrFeed,
+		"bookmarks":   prepareBookmark,
+		"feeds":       prepareFeed,
 		"books":       prepareWithGenre,
 		"cds":         prepareWithGenre,
 		"games":       prepareGame,
