@@ -378,6 +378,14 @@ func prepareWithGenre(app core.App, r *core.Record) error {
 	return nil
 }
 
+func prepareBook(app core.App, r *core.Record) error {
+	if err := prepareWithGenre(app, r); err != nil {
+		return err
+	}
+	r.Set("favorite", false)
+	return nil
+}
+
 func prepareMovieOrShow(app core.App, r *core.Record) error {
 	if err := prepareWithGenre(app, r); err != nil {
 		return err
@@ -389,6 +397,7 @@ func prepareMovieOrShow(app core.App, r *core.Record) error {
 		}
 		r.Set("definition", id)
 	}
+	r.Set("favorite", false)
 	return nil
 }
 
@@ -403,6 +412,7 @@ func prepareGame(app core.App, r *core.Record) error {
 		}
 		r.Set("platform", id)
 	}
+	r.Set("favorite", false)
 	return nil
 }
 
@@ -422,7 +432,7 @@ func main() {
 	preparers := map[string]func(core.App, *core.Record) error{
 		"bookmarks":   prepareBookmark,
 		"feeds":       prepareFeed,
-		"books":       prepareWithGenre,
+		"books":       prepareBook,
 		"cds":         prepareWithGenre,
 		"games":       prepareGame,
 		"movies":      prepareMovieOrShow,

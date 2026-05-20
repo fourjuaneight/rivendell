@@ -118,6 +118,7 @@ func BooksCollection() *core.Collection {
 	})
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -173,6 +174,7 @@ func GamesCollection() *core.Collection {
 	})
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -204,6 +206,7 @@ func MoviesCollection() *core.Collection {
 	})
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -236,6 +239,7 @@ func ShowsCollection() *core.Collection {
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.TextField{Name: "barcode"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection

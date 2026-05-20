@@ -59,6 +59,7 @@ Physical/digital book collection. Cover and year enriched from OpenLibrary on cr
 | `genre`    | relation | no       | → `meta` (type: `genre`), max 1   |
 | `year`     | number   | no       | Set automatically if ISBN present |
 | `cover`    | url      | no       | Set automatically (B2 URL)        |
+| `favorite` | bool     | no       | Defaults to `false` on create             |
 | `comments` | text     | no       |                                   |
 
 ## cds
@@ -88,6 +89,7 @@ Game collection. Cover and year enriched from IGDB on create.
 | `platform`  | relation | no       | → `meta` (type: `platform`), max 1 |
 | `year`      | number   | no       | Set automatically                  |
 | `cover`     | url      | no       | Set automatically (B2 URL)         |
+| `favorite` | bool     | no       | Defaults to `false` on create             |
 | `comments`  | text     | no       |                                    |
 
 ## movies
@@ -103,6 +105,7 @@ Movie collection. Cover and year enriched from TMDB on create.
 | `definition` | relation | no       | → `meta` (type: `definition`), max 1  |
 | `year`       | number   | no       | Set automatically                     |
 | `cover`      | url      | no       | Set automatically (B2 URL)            |
+| `favorite` | bool     | no       | Defaults to `false` on create             |
 | `comments`   | text     | no       |                                       |
 
 ## shows
@@ -119,6 +122,7 @@ TV show collection. Cover and year enriched from TMDB on create.
 | `year`       | number   | no       | Set automatically                     |
 | `barcode`    | text     | no       |                                       |
 | `cover`      | url      | no       | Set automatically (B2 URL)            |
+| `favorite` | bool     | no       | Defaults to `false` on create             |
 | `comments`   | text     | no       |                                       |
 
 ## vinyls
