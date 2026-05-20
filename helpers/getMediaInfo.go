@@ -1,14 +1,17 @@
 package helpers
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-
+	"log"
 	"net/http"
 	neturl "net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sahilm/fuzzy"
 )
@@ -346,6 +349,14 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 	}, nil
 }
 
+var tmdbClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		DisableKeepAlives: true,
+		TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+	},
+}
+
 func tmdbGet(token, endpoint string) ([]byte, error) {
 	sep := "?"
 	if strings.Contains(endpoint, "?") {
@@ -353,27 +364,47 @@ func tmdbGet(token, endpoint string) ([]byte, error) {
 	}
 	url := endpoint + sep + "api_key=" + token
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("[tmdbGet][http.NewRequest]: %w", err)
-	}
+	var lastErr error
+	for attempt := range 3 {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+		}
 
-	resp, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("[tmdbGet][client.Do]: %w", err)
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("[tmdbGet][http.NewRequest]: %w", err)
+		}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("[tmdbGet][io.ReadAll]: %w", err)
-	}
+		resp, err := tmdbClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("[tmdbGet][client.Do]: %w", err)
+			log.Printf("[tmdbGet]: attempt %d client.Do error: %v", attempt+1, err)
+			continue
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("[tmdbGet]: %s", resp.Status)
-	}
+		log.Printf("[tmdbGet]: %s → %d", endpoint, resp.StatusCode)
 
-	return body, nil
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("[tmdbGet]: status %d", resp.StatusCode)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			// gzip footer (last 8 bytes) often missing from CDN responses — the DEFLATE
+			// data is complete. If body is valid JSON, the content is intact.
+			if errors.Is(err, io.ErrUnexpectedEOF) && json.Valid(body) {
+				return body, nil
+			}
+			lastErr = fmt.Errorf("[tmdbGet][io.ReadAll]: %w", err)
+			log.Printf("[tmdbGet]: attempt %d failed: %v", attempt+1, err)
+			continue
+		}
+
+		return body, nil
+	}
+	return nil, lastErr
 }
 
 // SearchMedia searches TMDB by title/year and returns a full CleanMedia for the best result.
@@ -484,7 +515,9 @@ func SearchMedia(title string, year int, season int, mediaType string) (CleanMed
 	{
 		imgEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/season/%d/images", tv.ID, seasonNum)
 		imgBody, imgErr := tmdbGet(token, imgEndpoint)
-		if imgErr == nil {
+		if imgErr != nil {
+			log.Printf("[SearchMedia]: season images error (non-fatal): %v", imgErr)
+		} else if imgErr == nil {
 			var imgs seasonImages
 			if jsonErr := json.Unmarshal(imgBody, &imgs); jsonErr == nil && len(imgs.Posters) > 0 {
 				coverURL = "https://image.tmdb.org/t/p/original" + imgs.Posters[0].FilePath
