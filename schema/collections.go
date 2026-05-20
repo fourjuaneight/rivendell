@@ -119,6 +119,13 @@ func BooksCollection() *core.Collection {
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.BoolField{Name: "favorite"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "status",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -175,6 +182,13 @@ func GamesCollection() *core.Collection {
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.BoolField{Name: "favorite"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "status",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -207,6 +221,13 @@ func MoviesCollection() *core.Collection {
 	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.BoolField{Name: "favorite"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "status",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -240,6 +261,13 @@ func ShowsCollection() *core.Collection {
 	collection.Fields.Add(&core.TextField{Name: "barcode"})
 	collection.Fields.Add(&core.URLField{Name: "cover"})
 	collection.Fields.Add(&core.BoolField{Name: "favorite"})
+	collection.Fields.Add(&core.RelationField{
+		Name:          "status",
+		Required:      false,
+		CollectionId:  GetMetaID(),
+		MaxSelect:     1,
+		CascadeDelete: false,
+	})
 	collection.Fields.Add(&core.TextField{Name: "comments"})
 
 	return collection
@@ -377,7 +405,7 @@ func MetaCollection() *core.Collection {
 	collection.Fields.Add(&core.TextField{Name: "name", Required: true})
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
-		Values:    []string{"definition", "genre", "platform", "tags"},
+		Values:    []string{"definition", "genre", "platform", "status", "tags"},
 		MaxSelect: 1,
 	})
 

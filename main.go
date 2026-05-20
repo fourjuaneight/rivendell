@@ -378,12 +378,25 @@ func prepareWithGenre(app core.App, r *core.Record) error {
 	return nil
 }
 
+func prepareWithStatus(app core.App, r *core.Record) error {
+	name := r.GetString("status")
+	if name == "" {
+		name = "not_started"
+	}
+	id, err := resolveMetaName(app, name, "status")
+	if err != nil {
+		return fmt.Errorf("[prepareWithStatus]: %w", err)
+	}
+	r.Set("status", id)
+	return nil
+}
+
 func prepareBook(app core.App, r *core.Record) error {
 	if err := prepareWithGenre(app, r); err != nil {
 		return err
 	}
 	r.Set("favorite", false)
-	return nil
+	return prepareWithStatus(app, r)
 }
 
 func prepareMovieOrShow(app core.App, r *core.Record) error {
@@ -398,7 +411,7 @@ func prepareMovieOrShow(app core.App, r *core.Record) error {
 		r.Set("definition", id)
 	}
 	r.Set("favorite", false)
-	return nil
+	return prepareWithStatus(app, r)
 }
 
 func prepareGame(app core.App, r *core.Record) error {
@@ -413,7 +426,7 @@ func prepareGame(app core.App, r *core.Record) error {
 		r.Set("platform", id)
 	}
 	r.Set("favorite", false)
-	return nil
+	return prepareWithStatus(app, r)
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────

@@ -10,10 +10,10 @@ Lookup table for tags, genres, definitions, and platforms. Referenced by `bookma
 
 > ID is pinned via `META_ID` env var so relation fields can reference it at migration time.
 
-| Field  | Type   | Required | Constraints                                        |
-|--------|--------|----------|----------------------------------------------------|
-| `name` | text   | yes      |                                                    |
-| `type` | select | no       | `definition`, `genre`, `platform`, `tags` (max: 1) |
+| Field  | Type   | Required | Constraints                                                  |
+|--------|--------|----------|--------------------------------------------------------------|
+| `name` | text   | yes      |                                                              |
+| `type` | select | no       | `definition`, `genre`, `platform`, `status`, `tags` (max: 1) |
 
 ## bookmarks
 
@@ -59,7 +59,8 @@ Physical/digital book collection. Cover and year enriched from OpenLibrary on cr
 | `genre`    | relation | no       | → `meta` (type: `genre`), max 1   |
 | `year`     | number   | no       | Set automatically if ISBN present |
 | `cover`    | url      | no       | Set automatically (B2 URL)        |
-| `favorite` | bool     | no       | Defaults to `false` on create             |
+| `favorite` | bool     | no       | Defaults to `false` on create     |
+| `status`   | relation | no       | → `meta` (type: `status`), max 1  |
 | `comments` | text     | no       |                                   |
 
 ## cds
@@ -89,7 +90,8 @@ Game collection. Cover and year enriched from IGDB on create.
 | `platform`  | relation | no       | → `meta` (type: `platform`), max 1 |
 | `year`      | number   | no       | Set automatically                  |
 | `cover`     | url      | no       | Set automatically (B2 URL)         |
-| `favorite` | bool     | no       | Defaults to `false` on create             |
+| `favorite`  | bool     | no       | Defaults to `false` on create      |
+| `status`    | relation | no       | → `meta` (type: `status`), max 1   |
 | `comments`  | text     | no       |                                    |
 
 ## movies
@@ -105,7 +107,8 @@ Movie collection. Cover and year enriched from TMDB on create.
 | `definition` | relation | no       | → `meta` (type: `definition`), max 1  |
 | `year`       | number   | no       | Set automatically                     |
 | `cover`      | url      | no       | Set automatically (B2 URL)            |
-| `favorite` | bool     | no       | Defaults to `false` on create             |
+| `favorite`   | bool     | no       | Defaults to `false` on create         |
+| `status`     | relation | no       | → `meta` (type: `status`), max 1      |
 | `comments`   | text     | no       |                                       |
 
 ## shows
@@ -122,7 +125,8 @@ TV show collection. Cover and year enriched from TMDB on create.
 | `year`       | number   | no       | Set automatically                     |
 | `barcode`    | text     | no       |                                       |
 | `cover`      | url      | no       | Set automatically (B2 URL)            |
-| `favorite` | bool     | no       | Defaults to `false` on create             |
+| `favorite`   | bool     | no       | Defaults to `false` on create         |
+| `status`     | relation | no       | → `meta` (type: `status`), max 1      |
 | `comments`   | text     | no       |                                       |
 
 ## vinyls
