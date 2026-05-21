@@ -221,7 +221,7 @@ func enrichGames(r *core.Record) (bool, error) {
 
 func enrichMovies(r *core.Record) (bool, error) {
 	title := r.GetString("title")
-	media, err := helpers.SearchMedia(title, r.GetInt("year"), 0, "movies")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), 0, "movies", r.GetString("director"))
 	if err != nil {
 		return false, fmt.Errorf("[enrichMovies]: %w", err)
 	}
@@ -234,7 +234,7 @@ func enrichMovies(r *core.Record) (bool, error) {
 		}
 	}
 	if media.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(media.CoverURL, "movies", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title)))
+		b2URL, err := uploadCoverToB2(media.CoverURL, "movies", fmt.Sprintf("%s-%s.jpeg", utils.FileNameFmt(title), media.Year))
 		if err != nil {
 			return false, fmt.Errorf("[enrichMovies]: %w", err)
 		}
@@ -246,7 +246,7 @@ func enrichMovies(r *core.Record) (bool, error) {
 
 func enrichShows(r *core.Record) (bool, error) {
 	title := r.GetString("title")
-	media, err := helpers.SearchMedia(title, r.GetInt("year"), r.GetInt("season"), "shows")
+	media, err := helpers.SearchMedia(title, r.GetInt("year"), r.GetInt("season"), "shows", r.GetString("director"))
 	if err != nil {
 		return false, fmt.Errorf("[enrichShows]: %w", err)
 	}
@@ -259,7 +259,12 @@ func enrichShows(r *core.Record) (bool, error) {
 		}
 	}
 	if media.CoverURL != "" {
-		b2URL, err := uploadCoverToB2(media.CoverURL, "shows", fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title)))
+		season := r.GetInt("season")
+		showFile := fmt.Sprintf("%s.jpeg", utils.FileNameFmt(title))
+		if season > 0 {
+			showFile = fmt.Sprintf("%s-s%02d.jpeg", utils.FileNameFmt(title), season)
+		}
+		b2URL, err := uploadCoverToB2(media.CoverURL, "shows", showFile)
 		if err != nil {
 			return false, fmt.Errorf("[enrichShows]: %w", err)
 		}

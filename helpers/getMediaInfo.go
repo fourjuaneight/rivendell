@@ -192,9 +192,11 @@ type CleanMedia struct {
 
 type searchResult struct {
 	Results []struct {
-		ID    int    `json:"id"`
-		Title string `json:"title"` // movies
-		Name  string `json:"name"`  // tv
+		ID           int    `json:"id"`
+		Title        string `json:"title"`          // movies
+		Name         string `json:"name"`           // tv
+		ReleaseDate  string `json:"release_date"`   // movies
+		FirstAirDate string `json:"first_air_date"` // tv
 	} `json:"results"`
 }
 
@@ -407,10 +409,27 @@ func tmdbGet(token, endpoint string) ([]byte, error) {
 	return nil, lastErr
 }
 
+// directorMatches checks if input director name is found within the comma-separated
+// directors string returned by getDirector. Case-insensitive substring match.
+func directorMatches(input, fromAPI string) bool {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" {
+		return false
+	}
+	for _, name := range strings.Split(strings.ToLower(fromAPI), ", ") {
+		name = strings.TrimSpace(name)
+		if strings.Contains(name, input) || strings.Contains(input, name) {
+			return true
+		}
+	}
+	return false
+}
+
 // SearchMedia searches TMDB by title/year and returns a full CleanMedia for the best result.
 // For shows, fetches the season-specific poster; season=0 means the whole series, uses season 1.
+// director is optional — when non-empty, used to tiebreak among fuzzy-matched title candidates.
 // Used by the create hook. GetMediaInfo is available for URL-based full detail lookups.
-func SearchMedia(title string, year int, season int, mediaType string) (CleanMedia, error) {
+func SearchMedia(title string, year int, season int, mediaType string, director string) (CleanMedia, error) {
 	token, err := GetKeys("TMDB_KEY")
 	if err != nil {
 		return CleanMedia{}, fmt.Errorf("[SearchMedia]: [GetKeys]: %w", err)
@@ -424,7 +443,9 @@ func SearchMedia(title string, year int, season int, mediaType string) (CleanMed
 	// DOCS: https://developer.themoviedb.org/reference/search-movie (movies)
 	//       https://developer.themoviedb.org/reference/search-tv (shows)
 	searchEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/search/%s?query=%s", category, neturl.QueryEscape(title))
-	if year != 0 {
+	// year filter only valid for movies — TMDB TV search matches against first_air_date
+	// (show premiere), not season air date, so filtering by season year breaks results.
+	if year != 0 && category == "movie" {
 		searchEndpoint += fmt.Sprintf("&year=%d", year)
 	}
 
@@ -442,30 +463,58 @@ func SearchMedia(title string, year int, season int, mediaType string) (CleanMed
 		return CleanMedia{}, fmt.Errorf("[SearchMedia]: no results for %q (%d)", title, year)
 	}
 
-	// Fuzzy-match the input title against all returned titles to handle
-	// minor differences between stored and TMDB titles.
-	titles := make([]string, len(results.Results))
-	for i, r := range results.Results {
-		if category == "movie" {
-			titles[i] = r.Title
-		} else {
-			titles[i] = r.Name
-		}
-	}
-	bestIdx := 0
-	if matches := fuzzy.Find(title, titles); len(matches) > 0 {
-		bestIdx = matches[0].Index
-	}
-
-	// DOCS: https://developer.themoviedb.org/reference/movie-details (movie)
-	//       https://developer.themoviedb.org/reference/tv-series-details (tv)
-	detailEndpoint := fmt.Sprintf("https://api.themoviedb.org/3/%s/%d", category, results.Results[bestIdx].ID)
-	detailBody, err := tmdbGet(token, detailEndpoint)
-	if err != nil {
-		return CleanMedia{}, fmt.Errorf("[SearchMedia]: %w", err)
-	}
-
+	// Movies: pre-filter candidates to exact release year matches, then fuzzy title + director tiebreak.
+	// Shows: year is the season premiere year, not the show's first_air_date — disambiguation
+	// happens by checking individual season air dates after fetching show details.
 	if category == "movie" {
+		candidateIndices := make([]int, len(results.Results))
+		for i := range candidateIndices {
+			candidateIndices[i] = i
+		}
+		yearStr := fmt.Sprintf("%d", year)
+		var yearMatched []int
+		for i, r := range results.Results {
+			if len(r.ReleaseDate) >= 4 && r.ReleaseDate[:4] == yearStr {
+				yearMatched = append(yearMatched, i)
+			}
+		}
+		if len(yearMatched) > 0 {
+			candidateIndices = yearMatched
+		}
+
+		titles := make([]string, len(candidateIndices))
+		for i, idx := range candidateIndices {
+			titles[i] = results.Results[idx].Title
+		}
+		bestCandidatePos := 0
+		if matches := fuzzy.Find(title, titles); len(matches) > 0 {
+			bestCandidatePos = matches[0].Index
+			if director != "" {
+				topN := matches
+				if len(topN) > 3 {
+					topN = topN[:3]
+				}
+				for _, m := range topN {
+					candidateID := results.Results[candidateIndices[m.Index]].ID
+					dir, dirErr := getDirector("movie", fmt.Sprintf("%d", candidateID))
+					if dirErr != nil {
+						log.Printf("[SearchMedia]: director fetch (non-fatal): %v", dirErr)
+						continue
+					}
+					if directorMatches(director, dir) {
+						bestCandidatePos = m.Index
+						break
+					}
+				}
+			}
+		}
+		bestID := results.Results[candidateIndices[bestCandidatePos]].ID
+
+		// DOCS: https://developer.themoviedb.org/reference/movie-details
+		detailBody, err := tmdbGet(token, fmt.Sprintf("https://api.themoviedb.org/3/movie/%d", bestID))
+		if err != nil {
+			return CleanMedia{}, fmt.Errorf("[SearchMedia]: %w", err)
+		}
 		var movie Movie
 		if err = json.Unmarshal(detailBody, &movie); err != nil {
 			return CleanMedia{}, fmt.Errorf("[SearchMedia][json.Unmarshal movie]: %w", err)
@@ -494,10 +543,73 @@ func SearchMedia(title string, year int, season int, mediaType string) (CleanMed
 		}, nil
 	}
 
-	var tv TVShow
-	if err = json.Unmarshal(detailBody, &tv); err != nil {
-		return CleanMedia{}, fmt.Errorf("[SearchMedia][json.Unmarshal tv]: %w", err)
+	// Shows: build fuzzy-ranked candidate order, then fetch details for top 3.
+	// Score each by season air date year match (+2) and series creator name match (+1).
+	// Ties broken by fuzzy rank (earlier = better title match).
+	titles := make([]string, len(results.Results))
+	for i, r := range results.Results {
+		titles[i] = r.Name
 	}
+	fuzzyOrder := make([]int, len(results.Results))
+	for i := range fuzzyOrder {
+		fuzzyOrder[i] = i
+	}
+	if matches := fuzzy.Find(title, titles); len(matches) > 0 {
+		fuzzyOrder = make([]int, len(matches))
+		for i, m := range matches {
+			fuzzyOrder[i] = m.Index
+		}
+	}
+	if len(fuzzyOrder) > 3 {
+		fuzzyOrder = fuzzyOrder[:3]
+	}
+
+	type showCandidate struct {
+		tv    TVShow
+		score int
+	}
+	yearStr := fmt.Sprintf("%d", year)
+	var showCandidates []showCandidate
+	for _, idx := range fuzzyOrder {
+		id := results.Results[idx].ID
+		// DOCS: https://developer.themoviedb.org/reference/tv-series-details
+		body, fetchErr := tmdbGet(token, fmt.Sprintf("https://api.themoviedb.org/3/tv/%d", id))
+		if fetchErr != nil {
+			log.Printf("[SearchMedia]: TV detail fetch (non-fatal): %v", fetchErr)
+			continue
+		}
+		var tv TVShow
+		if err = json.Unmarshal(body, &tv); err != nil {
+			continue
+		}
+		score := 0
+		for _, s := range tv.Seasons {
+			if len(s.AirDate) >= 4 && s.AirDate[:4] == yearStr {
+				score += 2
+				break
+			}
+		}
+		if director != "" {
+			for _, cb := range tv.CreatedBy {
+				if directorMatches(director, cb.Name) {
+					score++
+					break
+				}
+			}
+		}
+		showCandidates = append(showCandidates, showCandidate{tv: tv, score: score})
+	}
+	if len(showCandidates) == 0 {
+		return CleanMedia{}, fmt.Errorf("[SearchMedia]: all TV detail fetches failed for %q", title)
+	}
+	best := showCandidates[0]
+	for _, c := range showCandidates[1:] {
+		if c.score > best.score {
+			best = c
+		}
+	}
+	tv := best.tv
+
 	genre := ""
 	if len(tv.Genres) > 0 {
 		genre = tv.Genres[0].Name
@@ -517,24 +629,17 @@ func SearchMedia(title string, year int, season int, mediaType string) (CleanMed
 		imgBody, imgErr := tmdbGet(token, imgEndpoint)
 		if imgErr != nil {
 			log.Printf("[SearchMedia]: season images error (non-fatal): %v", imgErr)
-		} else if imgErr == nil {
+		} else {
 			var imgs seasonImages
 			if jsonErr := json.Unmarshal(imgBody, &imgs); jsonErr == nil && len(imgs.Posters) > 0 {
 				coverURL = "https://image.tmdb.org/t/p/original" + imgs.Posters[0].FilePath
 			}
 		}
 	}
-	releaseYear := year
-	if len(tv.FirstAirDate) >= 4 {
-		releaseYear = 0
-		for _, c := range tv.FirstAirDate[:4] {
-			releaseYear = releaseYear*10 + int(c-'0')
-		}
-	}
 	return CleanMedia{
 		Title:    tv.Name,
 		Genre:    genre,
-		Year:     fmt.Sprintf("%d", releaseYear),
+		Year:     fmt.Sprintf("%d", year),
 		Type:     "shows",
 		CoverURL: coverURL,
 	}, nil
