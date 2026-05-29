@@ -204,7 +204,7 @@ func GetUploadUrl() (B2UploadTokens, error) {
 // Upload file to B2 bucket.
 // collection is the PocketBase collection name (e.g. "books") — looked up in pathMap to
 // determine the B2 subfolder. filename is the path within that folder (e.g. "cover.jpeg").
-// Full B2 path: PocketBase/{folder}/{filename}
+// Full B2 path: {folder}/{filename}
 // DOCS: https://www.backblaze.com/b2/docs/b2_upload_file.html
 func UploadToB2(data []byte, collection, filename, fileType string) (string, error) {
 	authData, err := GetUploadUrl()
@@ -216,7 +216,7 @@ func UploadToB2(data []byte, collection, filename, fileType string) (string, err
 	if !ok {
 		folder = collection
 	}
-	name := fmt.Sprintf("PocketBase/%s/%s", folder, filename)
+	name := fmt.Sprintf("%s/%s", folder, filename)
 
 	hasher := sha1.New()
 	hasher.Write(data)
