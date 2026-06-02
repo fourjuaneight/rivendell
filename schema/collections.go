@@ -89,7 +89,7 @@ func FeedsCollection() *core.Collection {
 	collection.Fields.Add(&core.SelectField{
 		Name:      "type",
 		Required:  true,
-		Values:    []string{"podcasts", "websites", "youtube"},
+		Values:    []string{"podcast", "website", "youtube"},
 		MaxSelect: 1,
 	})
 	collection.Fields.Add(&core.BoolField{Name: "dead"})
