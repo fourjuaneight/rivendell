@@ -47,6 +47,7 @@ func BookmarksCollection() *core.Collection {
 
 	collection.Fields.Add(&core.TextField{Name: "title", Required: true})
 	collection.Fields.Add(&core.TextField{Name: "creator", Required: true})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
 	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
 	collection.Fields.Add(&core.URLField{Name: "archive"})
 	collection.Fields.Add(&core.RelationField{
@@ -54,12 +55,6 @@ func BookmarksCollection() *core.Collection {
 		Required:     true,
 		CollectionId: GetMetaID(), // RelationField requires the target collection's ID, not its name
 		MaxSelect:    5,
-	})
-	collection.Fields.Add(&core.SelectField{
-		Name:      "type",
-		Required:  true,
-		Values:    []string{"articles", "podcasts", "videos"},
-		MaxSelect: 1,
 	})
 	collection.Fields.Add(&core.BoolField{Name: "dead"})
 	collection.Fields.Add(&core.BoolField{Name: "shared"})
