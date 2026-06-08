@@ -36,8 +36,8 @@ func GetMetaID() string {
 	return cachedMetaID
 }
 
-func BookmarksCollection() *core.Collection {
-	collection := core.NewBaseCollection("bookmarks")
+func ArticlesCollection() *core.Collection {
+	collection := core.NewBaseCollection("articles")
 	// Access rules are filter expressions evaluated per request.
 	// nil = deny all, new(string) = allow all, expression = conditional.
 	authRule := "@request.auth.id != ''"

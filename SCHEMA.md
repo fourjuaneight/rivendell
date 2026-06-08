@@ -6,7 +6,7 @@ Access rules unless noted: view/update require auth (`@request.auth.id != ''`), 
 
 ## meta
 
-Lookup table for tags, genres, definitions, and platforms. Referenced by `bookmarks`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, `vinyls`, `read_later`, and `watch_later`.
+Lookup table for tags, genres, definitions, and platforms. Referenced by `articles`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, `vinyls`, `read_later`, and `watch_later`.
 
 > ID is pinned via `META_ID` env var so relation fields can reference it at migration time.
 
@@ -15,7 +15,7 @@ Lookup table for tags, genres, definitions, and platforms. Referenced by `bookma
 | `name` | text   | yes      |                                                              |
 | `type` | select | no       | `definition`, `genre`, `platform`, `status`, `tags` (max: 1) |
 
-## bookmarks
+## articles
 
 Saved articles, podcasts, and videos. Archived to Backblaze B2 on create.
 

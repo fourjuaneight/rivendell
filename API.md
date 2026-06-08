@@ -43,7 +43,7 @@ Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 For `genre`, `definition`, and `platform` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works. If no matching meta record is found the field is silently cleared — the record is still created.
 
-For `tags` fields on `bookmarks` and `feeds`, pass an array of meta record IDs.
+For `tags` fields on `articles` and `feeds`, pass an array of meta record IDs.
 
 ## Collections
 
@@ -51,13 +51,13 @@ For `tags` fields on `bookmarks` and `feeds`, pass an array of meta record IDs.
 
 The server fetches and fills additional fields automatically after the record is saved.
 
-#### bookmarks
+#### articles
 
 Send: `title`, `creator`, `url`, `type`, `tags` — optionally `comments`
 Server sets: `dead = false`, `shared = false`, `archive` (content archived to B2)
 
 ```sh
-curl -X POST '{BASE_URL}/api/collections/bookmarks/records' \
+curl -X POST '{BASE_URL}/api/collections/articles/records' \
   -H 'Content-Type: application/json' \
   -d '{
     "title": "Some Article",
@@ -69,7 +69,7 @@ curl -X POST '{BASE_URL}/api/collections/bookmarks/records' \
 ```
 
 ```js
-const res = await fetch(`${BASE_URL}/api/collections/bookmarks/records`, {
+const res = await fetch(`${BASE_URL}/api/collections/articles/records`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -393,7 +393,7 @@ const record = await res.json();
 
 `type` options: `definition` · `genre` · `platform` · `tags`
 
-The `id` returned here is what you pass as relation values in `bookmarks.tags` and `feeds.tags`. For `genre`, `definition`, and `platform` on media collections, you can pass the name string directly — the server resolves it.
+The `id` returned here is what you pass as relation values in `articles.tags` and `feeds.tags`. For `genre`, `definition`, and `platform` on media collections, you can pass the name string directly — the server resolves it.
 
 ## Updating records
 
@@ -419,8 +419,8 @@ const updated = await res.json();
 ```
 
 Common update use cases:
-- `bookmarks` / `feeds`: toggle `dead` or `shared`
-- `bookmarks`: update `comments`
+- `articles` / `feeds`: toggle `dead` or `shared`
+- `articles`: update `comments`
 - `records`: set `end` date when leaving a position
 
 ## Listing / querying records

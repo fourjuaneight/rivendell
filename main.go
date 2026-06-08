@@ -26,7 +26,7 @@ func archive(name string, url string, typeName string) (string, error) {
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
 	filename := fmt.Sprintf("%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
-	archiveUrl, err := helpers.UploadToB2(media, "bookmarks", filename, typeOps.MIME)
+	archiveUrl, err := helpers.UploadToB2(media, "articles", filename, typeOps.MIME)
 	if err != nil {
 		return "", fmt.Errorf("[archive][UploadToB2]: %w", err)
 	}
@@ -39,7 +39,7 @@ func archive(name string, url string, typeName string) (string, error) {
 			log.Printf("[archive][GetSingleFile]: %v", sfErr)
 		} else {
 			sfFilename := fmt.Sprintf("Articles/%s.html", utils.FileNameFmt(name))
-			if _, sfUploadErr := helpers.UploadToB2(sfData, "bookmarks", sfFilename, "text/html"); sfUploadErr != nil {
+			if _, sfUploadErr := helpers.UploadToB2(sfData, "articles", sfFilename, "text/html"); sfUploadErr != nil {
 				log.Printf("[archive][UploadToB2 SingleFile]: %v", sfUploadErr)
 			}
 		}
@@ -72,10 +72,10 @@ func uploadCoverToB2(coverURL, collection, filename string) (string, error) {
 
 // ── Enrichers ────────────────────────────────────────────────────────────────
 
-func enrichBookmarks(r *core.Record) (bool, error) {
-	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), r.GetString("type"))
+func enrichArticles(r *core.Record) (bool, error) {
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "articles")
 	if err != nil {
-		return false, fmt.Errorf("[enrichBookmarks]: %w", err)
+		return false, fmt.Errorf("[enrichArticles]: %w", err)
 	}
 	r.Set("archive", archiveURL)
 	return true, nil
@@ -359,7 +359,7 @@ func prepareTags(app core.App, r *core.Record) error {
 	return nil
 }
 
-func prepareBookmark(app core.App, r *core.Record) error {
+func prepareArticle(app core.App, r *core.Record) error {
 	r.Set("dead", false)
 	r.Set("shared", false)
 	r.Set("favorite", false)
@@ -448,7 +448,7 @@ func main() {
 
 	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
 	preparers := map[string]func(core.App, *core.Record) error{
-		"bookmarks":   prepareBookmark,
+		"articles":    prepareArticle,
 		"feeds":       prepareFeed,
 		"books":       prepareBook,
 		"cds":         prepareWithGenre,
@@ -462,7 +462,7 @@ func main() {
 
 	// enrichers run after e.Next() — call external APIs and write enriched fields back.
 	enrichers := map[string]func(*core.Record) (bool, error){
-		"bookmarks":   enrichBookmarks,
+		"articles":    enrichArticles,
 		"github":      enrichGithub,
 		"mtg":         enrichMtg,
 		"books":       enrichBooks,
@@ -475,7 +475,7 @@ func main() {
 	}
 
 	app.OnRecordCreateRequest(
-		"bookmarks", "feeds", "github", "mtg",
+		"articles", "feeds", "github", "mtg",
 		"books", "cds", "games", "movies", "shows", "vinyls",
 		"read_later", "watch_later",
 	).BindFunc(func(e *core.RecordRequestEvent) error {

@@ -71,14 +71,14 @@ type B2UploadTokens struct {
 
 // pathMap maps collection names to their B2 folder names.
 var pathMap = map[string]string{
-	"bookmarks": "Bookmarks",
-	"books":     "Books",
-	"cds":       "CDs",
-	"games":     "Games",
-	"movies":    "Movies",
-	"mtg":       "MTG",
-	"shows":     "Shows",
-	"vinyls":    "Vinyls",
+	"articles": "Articles",
+	"books":    "Books",
+	"cds":      "CDs",
+	"games":    "Games",
+	"movies":   "Movies",
+	"mtg":      "MTG",
+	"shows":    "Shows",
+	"vinyls":   "Vinyls",
 }
 
 // Authorize B2 bucket for upload.
