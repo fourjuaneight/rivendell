@@ -26,7 +26,7 @@ func archive(name string, url string, typeName string) (string, error) {
 	typeOps := utils.GetFileType(typeName, url)
 	list := utils.ToCapitalized(typeName)
 	filename := fmt.Sprintf("%s/%s.%s", list, utils.FileNameFmt(name), typeOps.File)
-	archiveUrl, err := helpers.UploadToB2(media, "articles", filename, typeOps.MIME)
+	archiveUrl, err := helpers.UploadToB2(media, typeName, filename, typeOps.MIME)
 	if err != nil {
 		return "", fmt.Errorf("[archive][UploadToB2]: %w", err)
 	}
@@ -76,6 +76,18 @@ func enrichArticles(r *core.Record) (bool, error) {
 	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "articles")
 	if err != nil {
 		return false, fmt.Errorf("[enrichArticles]: %w", err)
+	}
+	r.Set("archive", archiveURL)
+	return true, nil
+}
+
+func enrichPodcasts(r *core.Record) (bool, error) {
+	if r.GetString("archive") != "" {
+		return false, nil
+	}
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "podcasts")
+	if err != nil {
+		return false, fmt.Errorf("[enrichPodcasts]: %w", err)
 	}
 	r.Set("archive", archiveURL)
 	return true, nil
@@ -366,6 +378,13 @@ func prepareArticle(app core.App, r *core.Record) error {
 	return prepareTags(app, r)
 }
 
+func preparePodcast(app core.App, r *core.Record) error {
+	r.Set("dead", false)
+	r.Set("shared", false)
+	r.Set("favorite", false)
+	return prepareTags(app, r)
+}
+
 func prepareFeed(app core.App, r *core.Record) error {
 	r.Set("dead", false)
 	r.Set("shared", false)
@@ -449,6 +468,7 @@ func main() {
 	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
 	preparers := map[string]func(core.App, *core.Record) error{
 		"articles":    prepareArticle,
+		"podcasts":    preparePodcast,
 		"feeds":       prepareFeed,
 		"books":       prepareBook,
 		"cds":         prepareWithGenre,
@@ -463,6 +483,7 @@ func main() {
 	// enrichers run after e.Next() — call external APIs and write enriched fields back.
 	enrichers := map[string]func(*core.Record) (bool, error){
 		"articles":    enrichArticles,
+		"podcasts":    enrichPodcasts,
 		"github":      enrichGithub,
 		"mtg":         enrichMtg,
 		"books":       enrichBooks,
@@ -475,7 +496,7 @@ func main() {
 	}
 
 	app.OnRecordCreateRequest(
-		"articles", "feeds", "github", "mtg",
+		"articles", "podcasts", "feeds", "github", "mtg",
 		"books", "cds", "games", "movies", "shows", "vinyls",
 		"read_later", "watch_later",
 	).BindFunc(func(e *core.RecordRequestEvent) error {
