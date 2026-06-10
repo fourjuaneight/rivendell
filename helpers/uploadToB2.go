@@ -80,7 +80,7 @@ var pathMap = map[string]string{
 	"podcasts": "Podcasts",
 	"shows":    "Shows",
 	"vinyls":   "Vinyls",
-	"youtubes":  "YouTubes",
+	"videos":   "Videos",
 }
 
 // Authorize B2 bucket for upload.

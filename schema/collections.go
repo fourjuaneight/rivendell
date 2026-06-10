@@ -90,6 +90,32 @@ func PodcastsCollection() *core.Collection {
 	return collection
 }
 
+func VideosCollection() *core.Collection {
+	collection := core.NewBaseCollection("videos")
+	authRule := "@request.auth.id != ''"
+	collection.ViewRule = &authRule
+	collection.CreateRule = new(string)
+	collection.UpdateRule = &authRule
+
+	collection.Fields.Add(&core.TextField{Name: "title"})
+	collection.Fields.Add(&core.TextField{Name: "creator"})
+	collection.Fields.Add(&core.NumberField{Name: "year"})
+	collection.Fields.Add(&core.URLField{Name: "url", Required: true})
+	collection.Fields.Add(&core.URLField{Name: "archive"})
+	collection.Fields.Add(&core.RelationField{
+		Name:         "tags",
+		Required:     true,
+		CollectionId: GetMetaID(),
+		MaxSelect:    5,
+	})
+	collection.Fields.Add(&core.BoolField{Name: "dead"})
+	collection.Fields.Add(&core.BoolField{Name: "shared"})
+	collection.Fields.Add(&core.BoolField{Name: "favorite"})
+	collection.Fields.Add(&core.TextField{Name: "comments"})
+
+	return collection
+}
+
 func FeedsCollection() *core.Collection {
 	collection := core.NewBaseCollection("feeds")
 	authRule := "@request.auth.id != ''"

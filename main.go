@@ -93,6 +93,28 @@ func enrichPodcasts(r *core.Record) (bool, error) {
 	return true, nil
 }
 
+func enrichVideos(r *core.Record) (bool, error) {
+	if r.GetString("archive") != "" {
+		return false, nil
+	}
+
+	yt, err := helpers.GetYTInfo(r.GetString("url"))
+	if err != nil {
+		return false, fmt.Errorf("[enrichVideos]: %w", err)
+	}
+	r.Set("title", yt.Title)
+	r.Set("creator", yt.Creator)
+	r.Set("url", yt.URL)
+
+	archiveURL, err := archive(yt.Title, yt.URL, "videos")
+	if err != nil {
+		return false, fmt.Errorf("[enrichVideos]: %w", err)
+	}
+	r.Set("archive", archiveURL)
+
+	return true, nil
+}
+
 func enrichGithub(r *core.Record) (bool, error) {
 	repo, err := helpers.GetRepoInfo(r.GetString("url"))
 	if err != nil {
@@ -378,7 +400,7 @@ func prepareArticle(app core.App, r *core.Record) error {
 	return prepareTags(app, r)
 }
 
-func preparePodcast(app core.App, r *core.Record) error {
+func prepareMedia(app core.App, r *core.Record) error {
 	r.Set("dead", false)
 	r.Set("shared", false)
 	r.Set("favorite", false)
@@ -468,7 +490,8 @@ func main() {
 	// preparers run before e.Next() — set defaults and resolve relation names to IDs.
 	preparers := map[string]func(core.App, *core.Record) error{
 		"articles":    prepareArticle,
-		"podcasts":    preparePodcast,
+		"podcasts":    prepareMedia,
+		"videos":      prepareMedia,
 		"feeds":       prepareFeed,
 		"books":       prepareBook,
 		"cds":         prepareWithGenre,
@@ -484,6 +507,7 @@ func main() {
 	enrichers := map[string]func(*core.Record) (bool, error){
 		"articles":    enrichArticles,
 		"podcasts":    enrichPodcasts,
+		"videos":      enrichVideos,
 		"github":      enrichGithub,
 		"mtg":         enrichMtg,
 		"books":       enrichBooks,
@@ -496,7 +520,7 @@ func main() {
 	}
 
 	app.OnRecordCreateRequest(
-		"articles", "podcasts", "feeds", "github", "mtg",
+		"articles", "podcasts", "videos", "feeds", "github", "mtg",
 		"books", "cds", "games", "movies", "shows", "vinyls",
 		"read_later", "watch_later",
 	).BindFunc(func(e *core.RecordRequestEvent) error {
