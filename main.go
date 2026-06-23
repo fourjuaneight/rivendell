@@ -85,7 +85,7 @@ func enrichPodcasts(r *core.Record) (bool, error) {
 	if r.GetString("archive") != "" {
 		return false, nil
 	}
-	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "podcasts", "", 0)
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "podcasts", r.GetString("creator"), r.GetInt("year"))
 	if err != nil {
 		return false, fmt.Errorf("[enrichPodcasts]: %w", err)
 	}
