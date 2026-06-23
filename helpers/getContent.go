@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -158,17 +159,32 @@ func GetYTVid(name string, url string) ([]byte, error) {
 
 // GetSingleFile captures a full-page HTML snapshot via single-file-cli and returns the bytes.
 // Requires chromium and single-file-cli installed in the runtime environment.
+//
+// Note: single-file hardcodes "--single-process" when launching chromium, which crashes the
+// renderer on chromium >= ~131 so the remote-debugging port never opens. The Dockerfile strips
+// that flag from single-file's browser.js. We pass only "--no-sandbox" (the container runs as
+// root) and let single-file manage headless mode itself.
 func GetSingleFile(urlString string) ([]byte, error) {
 	cmd := exec.Command("single-file",
 		"--browser-executable-path=/usr/bin/chromium-browser",
-		`--browser-args=["--no-sandbox","--headless"]`,
+		`--browser-args=["--no-sandbox"]`,
 		"--dump-content",
 		urlString,
 	)
 
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("[GetSingleFile][cmd.Output]: %w", err)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("[GetSingleFile][cmd.Run]: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+
+	// single-file exits 0 even when the capture fails (e.g. it logs "fetch failed" to stderr
+	// and emits nothing). Treat empty output as an error so callers never archive an empty file.
+	output := stdout.Bytes()
+	if len(output) == 0 {
+		return nil, fmt.Errorf("[GetSingleFile]: empty output: %s", strings.TrimSpace(stderr.String()))
 	}
 
 	return output, nil

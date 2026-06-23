@@ -14,6 +14,12 @@ RUN apk add --no-cache ca-certificates chromium ffmpeg nodejs npm tzdata wget \
          -O /usr/local/bin/yt-dlp \
     && chmod a+rx /usr/local/bin/yt-dlp \
     && npm install -g single-file-cli \
+    # single-file hardcodes "--single-process", which crashes chromium >= ~131 so the
+    # remote-debugging port never opens and captures fail silently. Strip that flag.
+    # grep -q first so the build fails loudly if upstream renames/removes the line.
+    && BROWSER_JS="$(npm root -g)/single-file-cli/lib/browser.js" \
+    && grep -q 'args.push("--single-process");' "$BROWSER_JS" \
+    && sed -i '/args.push("--single-process");/d' "$BROWSER_JS" \
     && npm cache clean --force
 
 WORKDIR /app
