@@ -17,8 +17,8 @@ import (
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
-func archive(name string, url string, typeName string) (string, error) {
-	media, err := helpers.GetContent(name, url, typeName)
+func archive(name string, url string, typeName string, creator string, year int) (string, error) {
+	media, err := helpers.GetContent(name, url, typeName, creator, year)
 	if err != nil {
 		return "", fmt.Errorf("[archive][GetContent]: %w", err)
 	}
@@ -73,7 +73,7 @@ func uploadCoverToB2(coverURL, collection, filename string) (string, error) {
 // ── Enrichers ────────────────────────────────────────────────────────────────
 
 func enrichArticles(r *core.Record) (bool, error) {
-	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "articles")
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "articles", "", 0)
 	if err != nil {
 		return false, fmt.Errorf("[enrichArticles]: %w", err)
 	}
@@ -85,7 +85,7 @@ func enrichPodcasts(r *core.Record) (bool, error) {
 	if r.GetString("archive") != "" {
 		return false, nil
 	}
-	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "podcasts")
+	archiveURL, err := archive(r.GetString("title"), r.GetString("url"), "podcasts", "", 0)
 	if err != nil {
 		return false, fmt.Errorf("[enrichPodcasts]: %w", err)
 	}
@@ -105,8 +105,9 @@ func enrichVideos(r *core.Record) (bool, error) {
 	r.Set("title", yt.Title)
 	r.Set("creator", yt.Creator)
 	r.Set("url", yt.URL)
+	r.Set("year", yt.Year)
 
-	archiveURL, err := archive(yt.Title, yt.URL, "videos")
+	archiveURL, err := archive(yt.Title, yt.URL, "videos", yt.Creator, yt.Year)
 	if err != nil {
 		return false, fmt.Errorf("[enrichVideos]: %w", err)
 	}

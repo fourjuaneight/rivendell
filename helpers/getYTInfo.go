@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type YouTubeAPIEndpoint struct {
@@ -75,7 +76,7 @@ type CleanYT struct {
 	Title   string
 	Creator string
 	URL     string
-	Tags    []string
+	Year    int
 }
 
 func cleanYTURL(url string) YouTubeAPIEndpoint {
@@ -121,9 +122,15 @@ func GetYTInfo(url string) (CleanYT, error) {
 
 	video := response.Items[0].Snippet
 
+	year := 0
+	if published, err := time.Parse(time.RFC3339, video.PublishedAt); err == nil {
+		year = published.Year()
+	}
+
 	return CleanYT{
 		Title:   video.Title,
 		Creator: video.ChannelTitle,
 		URL:     urls.Link,
+		Year:    year,
 	}, nil
 }

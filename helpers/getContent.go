@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/fourjuaneight/rivendell/utils"
@@ -132,8 +133,41 @@ func GetMedia(name string, url string) ([]byte, error) {
 	return media, nil
 }
 
+// tagVideoMetadata writes record metadata into the MP4 container via ffmpeg.
+// Uses stream copy (no re-encode), so it's fast. Mirrors tag_videos.py: the creator
+// maps to both artist (©ART) and album_artist (aART), and genre (©gen) is fixed to
+// "YouTube". Empty/zero fields are skipped.
+func tagVideoMetadata(path string, title string, creator string, year int) error {
+	taggedPath := path + ".tagged.mp4"
+
+	args := []string{"-y", "-i", path, "-map", "0", "-c", "copy"}
+	if title != "" {
+		args = append(args, "-metadata", "title="+title)
+	}
+	if creator != "" {
+		args = append(args, "-metadata", "artist="+creator, "-metadata", "album_artist="+creator)
+	}
+	if year != 0 {
+		args = append(args, "-metadata", "date="+strconv.Itoa(year))
+	}
+	args = append(args, "-metadata", "genre=YouTube", taggedPath)
+
+	if err := utils.CMD("ffmpeg", args...); err != nil {
+		os.Remove(taggedPath) // best-effort cleanup of partial output
+		return fmt.Errorf("[tagVideoMetadata][ffmpeg]: %w", err)
+	}
+
+	// Replace the original download with the tagged copy.
+	if err := os.Rename(taggedPath, path); err != nil {
+		os.Remove(taggedPath)
+		return fmt.Errorf("[tagVideoMetadata][os.Rename]: %w", err)
+	}
+
+	return nil
+}
+
 // Get YouTube file from url.
-func GetYTVid(name string, url string) ([]byte, error) {
+func GetYTVid(name string, url string, creator string, year int) ([]byte, error) {
 	fileName := utils.FileNameFmt(name)
 	filePath := fileName + ".mp4"
 
@@ -141,6 +175,12 @@ func GetYTVid(name string, url string) ([]byte, error) {
 	ytdlErr := utils.YTDL(url, filePath)
 	if ytdlErr != nil {
 		return nil, fmt.Errorf("[GetYTVid][YTDL]: %w", ytdlErr)
+	}
+
+	// embed record metadata (title, creator, year, genre) into the MP4
+	if err := tagVideoMetadata(filePath, name, creator, year); err != nil {
+		os.Remove(filePath) // best-effort cleanup of the untagged download
+		return nil, fmt.Errorf("[GetYTVid][tagVideoMetadata]: %w", err)
 	}
 
 	// read downloaded file into buffer
@@ -190,12 +230,12 @@ func GetSingleFile(urlString string) ([]byte, error) {
 	return output, nil
 }
 
-func GetContent(name string, url string, mediaType string) ([]byte, error) {
+func GetContent(name string, url string, mediaType string, creator string, year int) ([]byte, error) {
 	switch mediaType {
 	case "articles":
 		return GetArticle(name, url)
 	case "videos":
-		return GetYTVid(name, url)
+		return GetYTVid(name, url, creator, year)
 	default:
 		return GetMedia(name, url)
 	}
