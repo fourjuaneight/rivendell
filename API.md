@@ -41,9 +41,9 @@ Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 ## Relation name resolution
 
-For `genre`, `definition`, and `platform` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works. If no matching meta record is found the field is silently cleared — the record is still created.
+For `genre`, `definition`, `platform`, and `status` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`, `"in_progress"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works. If no matching meta record is found the field is silently cleared — the record is still created.
 
-For `tags` fields on `articles` and `feeds`, pass an array of meta record IDs.
+For `tags` fields on `articles`, `podcasts`, `videos`, `feeds`, `read_later`, and `watch_later`, pass an array of **tag name strings** (e.g. `["programming", "go"]`). The server resolves each to its `meta` record ID before saving. Passing raw IDs does **not** work — they fail to match any name and the required `tags` field is left empty, rejecting the create.
 
 ## Collections
 
@@ -53,8 +53,8 @@ The server fetches and fills additional fields automatically after the record is
 
 #### articles
 
-Send: `title`, `creator`, `url`, `type`, `tags` — optionally `comments`
-Server sets: `dead = false`, `shared = false`, `archive` (content archived to B2)
+Send: `title`, `creator`, `url`, `tags` (names) — optionally `year`, `comments`
+Server sets: `dead = false`, `shared = false`, `favorite = false`, `archive` (Markdown content archived to B2; a SingleFile HTML snapshot is also uploaded to B2 as a best-effort extra)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/articles/records' \
@@ -63,8 +63,7 @@ curl -X POST '{BASE_URL}/api/collections/articles/records' \
     "title": "Some Article",
     "creator": "Author Name",
     "url": "https://example.com/article",
-    "type": "articles",
-    "tags": ["meta_record_id_1", "meta_record_id_2"]
+    "tags": ["programming", "go"]
   }'
 ```
 
@@ -76,14 +75,67 @@ const res = await fetch(`${BASE_URL}/api/collections/articles/records`, {
     title: 'Some Article',
     creator: 'Author Name',
     url: 'https://example.com/article',
-    type: 'articles',
-    tags: ['meta_record_id_1', 'meta_record_id_2'],
+    tags: ['programming', 'go'],
   }),
 });
 const record = await res.json();
 ```
 
-`type` options: `articles` · `podcasts` · `videos`
+#### podcasts
+
+Send: `title`, `creator`, `url`, `tags` (names) — optionally `year`, `comments`
+Server sets: `dead = false`, `shared = false`, `favorite = false`, `archive` (episode archived to B2). Enrichment is skipped if `archive` is already set on create.
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/podcasts/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Some Episode",
+    "creator": "Show Name",
+    "url": "https://example.com/episode.mp3",
+    "tags": ["tech"]
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/podcasts/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Some Episode',
+    creator: 'Show Name',
+    url: 'https://example.com/episode.mp3',
+    tags: ['tech'],
+  }),
+});
+const record = await res.json();
+```
+
+#### videos
+
+Send: `url`, `tags` (names) — optionally `comments`
+Server sets: `title`, `creator`, `url` (from YouTube), `dead = false`, `shared = false`, `favorite = false`, `archive` (video downloaded and archived to B2). Enrichment is skipped if `archive` is already set on create.
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/videos/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "tags": ["music"]
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/videos/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    tags: ['music'],
+  }),
+});
+const record = await res.json();
+```
 
 #### github
 
@@ -131,8 +183,8 @@ const record = await res.json();
 
 #### books
 
-Send: `title`, `author` — optionally `isbn`, `genre` (name), `year`, `comments`
-Server sets: `year` (from OpenLibrary if ISBN provided), `cover` (B2 URL)
+Send: `title`, `author` — optionally `isbn`, `genre` (name), `status` (name), `year`, `comments`
+Server sets: `year` (from OpenLibrary if ISBN provided), `cover` (B2 URL), `favorite = false`, `status` (defaults to `not_started` if omitted)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/books/records' \
@@ -191,8 +243,8 @@ const record = await res.json();
 
 #### games
 
-Send: `title` — optionally `publisher`, `barcode`, `genre` (name), `platform` (name), `year`, `comments`
-Server sets: `year` and `cover` (from IGDB, B2 URL)
+Send: `title` — optionally `publisher`, `barcode`, `genre` (name), `platform` (name), `status` (name), `year`, `comments`
+Server sets: `year` and `cover` (from IGDB, B2 URL), `favorite = false`, `status` (defaults to `not_started` if omitted)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/games/records' \
@@ -219,8 +271,8 @@ const record = await res.json();
 
 #### movies
 
-Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `year`, `comments`
-Server sets: `year` and `cover` (from TMDB, B2 URL)
+Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `status` (name), `year`, `comments`
+Server sets: `year` and `cover` (from TMDB, B2 URL), `favorite = false`, `status` (defaults to `not_started` if omitted)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/movies/records' \
@@ -249,8 +301,8 @@ const record = await res.json();
 
 #### shows
 
-Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `season`, `year`, `comments`
-Server sets: `year` and `cover` (from TMDB season poster if `season` provided, else show poster, B2 URL)
+Send: `title` — optionally `director`, `barcode`, `genre` (name), `definition` (name), `status` (name), `season`, `year`, `comments`
+Server sets: `year` and `cover` (from TMDB season poster if `season` provided, else show poster, B2 URL), `favorite = false`, `status` (defaults to `not_started` if omitted)
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/shows/records' \
@@ -303,13 +355,39 @@ const res = await fetch(`${BASE_URL}/api/collections/vinyls/records`, {
 const record = await res.json();
 ```
 
+#### watch_later
+
+Send: `link`, `tags` (names) — `title` and `channel` are auto-filled from YouTube
+Server sets: `title`, `channel` (from YouTube)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/watch_later/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "link": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "tags": ["music"]
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/watch_later/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    tags: ['music'],
+  }),
+});
+const record = await res.json();
+```
+
 ### Manual entry
 
 All fields must be provided by the caller.
 
 #### feeds
 
-Send: `title`, `url`, `type`, `tags` — optionally `rss`, `comments`
+Send: `title`, `url`, `type`, `tags` (names) — optionally `rss`, `comments`
 Server sets: `dead = false`, `shared = false`
 
 ```sh
@@ -319,8 +397,8 @@ curl -X POST '{BASE_URL}/api/collections/feeds/records' \
     "title": "Feed Name",
     "url": "https://example.com",
     "rss": "https://example.com/feed.xml",
-    "type": "websites",
-    "tags": ["meta_record_id_1"]
+    "type": "website",
+    "tags": ["tech"]
   }'
 ```
 
@@ -332,14 +410,41 @@ const res = await fetch(`${BASE_URL}/api/collections/feeds/records`, {
     title: 'Feed Name',
     url: 'https://example.com',
     rss: 'https://example.com/feed.xml',
-    type: 'websites',
-    tags: ['meta_record_id_1'],
+    type: 'website',
+    tags: ['tech'],
   }),
 });
 const record = await res.json();
 ```
 
-`type` options: `podcasts` · `websites` · `youtube`
+`type` options: `podcast` · `website` · `youtube`
+
+#### read_later
+
+Send: `title`, `link`, `tags` (names)
+
+```sh
+curl -X POST '{BASE_URL}/api/collections/read_later/records' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "Some Article",
+    "link": "https://example.com/article",
+    "tags": ["programming"]
+  }'
+```
+
+```js
+const res = await fetch(`${BASE_URL}/api/collections/read_later/records`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: 'Some Article',
+    link: 'https://example.com/article',
+    tags: ['programming'],
+  }),
+});
+const record = await res.json();
+```
 
 #### records
 
@@ -374,7 +479,7 @@ const record = await res.json();
 
 #### meta
 
-Lookup values for `tags`, `genre`, `definition`, and `platform` fields used by other collections.
+Lookup values for `tags`, `genre`, `definition`, `platform`, and `status` fields used by other collections.
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/meta/records' \
@@ -391,9 +496,9 @@ const res = await fetch(`${BASE_URL}/api/collections/meta/records`, {
 const record = await res.json();
 ```
 
-`type` options: `definition` · `genre` · `platform` · `tags`
+`type` options: `definition` · `genre` · `platform` · `status` · `tags`
 
-The `id` returned here is what you pass as relation values in `articles.tags` and `feeds.tags`. For `genre`, `definition`, and `platform` on media collections, you can pass the name string directly — the server resolves it.
+You reference these by **name**, not by the returned `id`. For `tags` on `articles`, `podcasts`, `videos`, `feeds`, `read_later`, and `watch_later`, pass the tag name strings created here — the server resolves them to IDs. Likewise, pass `genre`, `definition`, `platform`, and `status` name strings directly on the media collections that use them.
 
 ## Updating records
 
@@ -419,7 +524,9 @@ const updated = await res.json();
 ```
 
 Common update use cases:
-- `articles` / `feeds`: toggle `dead` or `shared`
+- `articles` / `podcasts` / `videos` / `feeds`: toggle `dead` or `shared`
+- `articles` / `podcasts` / `videos` / `books` / `games` / `movies` / `shows`: toggle `favorite`
+- `books` / `games` / `movies` / `shows`: update `status` (pass a `status` meta name)
 - `articles`: update `comments`
 - `records`: set `end` date when leaving a position
 

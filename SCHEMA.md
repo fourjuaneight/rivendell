@@ -6,7 +6,7 @@ Access rules unless noted: view/update require auth (`@request.auth.id != ''`), 
 
 ## meta
 
-Lookup table for tags, genres, definitions, and platforms. Referenced by `articles`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, `vinyls`, `read_later`, and `watch_later`.
+Lookup table for tags, genres, definitions, platforms, and statuses. Referenced by `articles`, `podcasts`, `videos`, `feeds`, `books`, `cds`, `games`, `movies`, `shows`, `vinyls`, `read_later`, and `watch_later`.
 
 > ID is pinned via `META_ID` env var so relation fields can reference it at migration time.
 
@@ -17,20 +17,54 @@ Lookup table for tags, genres, definitions, and platforms. Referenced by `articl
 
 ## articles
 
-Saved articles, podcasts, and videos. Archived to Backblaze B2 on create.
+Saved articles. Markdown content archived to Backblaze B2 on create (plus a best-effort SingleFile HTML snapshot).
 
-| Field      | Type     | Required | Constraints                               |
-|------------|----------|----------|-------------------------------------------|
-| `title`    | text     | yes      |                                           |
-| `creator`  | text     | yes      |                                           |
-| `url`      | url      | yes      |                                           |
-| `archive`  | url      | no       | Set automatically on create               |
-| `tags`     | relation | yes      | → `meta`, max 5                           |
-| `type`     | select   | yes      | `articles`, `podcasts`, `videos` (max: 1) |
-| `dead`     | bool     | no       | Defaults to `false` on create             |
-| `shared`   | bool     | no       | Defaults to `false` on create             |
-| `favorite` | bool     | no       | Defaults to `false` on create             |
-| `comments` | text     | no       |                                           |
+| Field      | Type     | Required | Constraints                   |
+|------------|----------|----------|-------------------------------|
+| `title`    | text     | yes      |                               |
+| `creator`  | text     | yes      |                               |
+| `year`     | number   | no       |                               |
+| `url`      | url      | yes      |                               |
+| `archive`  | url      | no       | Set automatically on create   |
+| `tags`     | relation | yes      | → `meta`, max 5               |
+| `dead`     | bool     | no       | Defaults to `false` on create |
+| `shared`   | bool     | no       | Defaults to `false` on create |
+| `favorite` | bool     | no       | Defaults to `false` on create |
+| `comments` | text     | no       |                               |
+
+## podcasts
+
+Saved podcast episodes. Archived to Backblaze B2 on create (skipped if `archive` is already set).
+
+| Field      | Type     | Required | Constraints                   |
+|------------|----------|----------|-------------------------------|
+| `title`    | text     | yes      |                               |
+| `creator`  | text     | yes      |                               |
+| `year`     | number   | no       |                               |
+| `url`      | url      | yes      |                               |
+| `archive`  | url      | no       | Set automatically on create   |
+| `tags`     | relation | yes      | → `meta`, max 5               |
+| `dead`     | bool     | no       | Defaults to `false` on create |
+| `shared`   | bool     | no       | Defaults to `false` on create |
+| `favorite` | bool     | no       | Defaults to `false` on create |
+| `comments` | text     | no       |                               |
+
+## videos
+
+Saved videos. `title`/`creator` fetched from YouTube and the video archived to Backblaze B2 on create (skipped if `archive` is already set).
+
+| Field      | Type     | Required | Constraints                            |
+|------------|----------|----------|----------------------------------------|
+| `title`    | text     | no       | Fetched from YouTube on create         |
+| `creator`  | text     | no       | Fetched from YouTube on create         |
+| `year`     | number   | no       |                                        |
+| `url`      | url      | yes      |                                        |
+| `archive`  | url      | no       | Set automatically on create            |
+| `tags`     | relation | yes      | → `meta`, max 5                        |
+| `dead`     | bool     | no       | Defaults to `false` on create          |
+| `shared`   | bool     | no       | Defaults to `false` on create          |
+| `favorite` | bool     | no       | Defaults to `false` on create          |
+| `comments` | text     | no       |                                        |
 
 ## feeds
 
@@ -42,7 +76,7 @@ RSS/podcast/YouTube feeds.
 | `url`      | url      | yes      |                                            |
 | `rss`      | url      | no       |                                            |
 | `tags`     | relation | yes      | → `meta`, max 5                            |
-| `type`     | select   | yes      | `podcasts`, `websites`, `youtube` (max: 1) |
+| `type`     | select   | yes      | `podcast`, `website`, `youtube` (max: 1)   |
 | `dead`     | bool     | no       | Defaults to `false` on create              |
 | `shared`   | bool     | no       | Defaults to `false` on create              |
 | `comments` | text     | no       |                                            |
