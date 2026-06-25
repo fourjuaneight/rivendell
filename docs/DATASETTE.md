@@ -46,10 +46,13 @@ tailscale-datasette node  :443 ──/──>  rivendell-datasette.<tailnet>.ts.
 
 ```
 datasette/
-├── Dockerfile      # python:3.12-slim + datasette + plugins + sqlite3
+├── Dockerfile      # python:3.12-slim + datasette + pip plugins + sqlite3
 ├── entrypoint.sh   # wait-for-db, sync + serve loop (5 min refresh), missing-snapshot guard
-├── sync.sh         # copy data.db file-set to temp, VACUUM INTO -> rivendell.db
-└── metadata.yml    # table metadata, ~50 canned queries, 10 dashboards
+├── sync.sh         # copy data.db file-set to temp, VACUUM INTO -> rivendell.db, then denormalize
+├── denormalize.py  # rewrite snapshot relation IDs -> meta names (tags + single relations)
+├── metadata.yml    # table metadata, ~50 canned queries, 10 dashboards
+└── plugins/
+    └── render_meta_names.py   # render_cell hook: prettify the tags array cell (["go","rust"] -> go, rust)
 ```
 
 ### Plugins
@@ -71,30 +74,33 @@ This is the heart of the analytics layer. Two parts:
 
 ### Relation fields
 
-PocketBase relation fields are stored as record IDs, so aggregating them requires joining the `meta` lookup table:
+PocketBase stores relation fields as meta record IDs. To make the analytics copy human-readable **everywhere** — table cells, facets, and filters — `sync.sh` runs `denormalize.py` after each snapshot, replacing IDs with their `meta` `name`:
 
-- **`tags`** (multi-select) is a JSON array of IDs — expand with `json_each`, then join `meta` for names:
+- `tags` (multi-select) → a JSON array of names, e.g. `["go","rust"]`
+- `genre` / `platform` / `status` / `definition` (single-select) → the name string
 
-  ```sql
-  SELECT m.name AS tag, COUNT(*) AS count
-  FROM articles a, json_each(a.tags) je
-  JOIN meta m ON m.id = je.value
-  GROUP BY m.name
-  ORDER BY count DESC
-  ```
+So the snapshot's columns already hold names. Canned queries group on the column directly — **no `meta` join**:
 
-- **`genre` / `platform` / `status` / `definition`** (single-select) are a bare ID string — join directly:
+```sql
+-- tag frequency
+SELECT je.value AS tag, COUNT(*) AS count
+FROM articles a, json_each(a.tags) je
+GROUP BY je.value
+ORDER BY count DESC
 
-  ```sql
-  SELECT m.name AS genre, COUNT(*) AS count
-  FROM books b
-  JOIN meta m ON m.id = b.genre
-  WHERE b.genre IS NOT NULL AND b.genre != ''
-  GROUP BY m.name
-  ORDER BY count DESC
-  ```
+-- single relation
+SELECT genre, COUNT(*) AS count
+FROM books
+WHERE genre IS NOT NULL AND genre != ''
+GROUP BY genre
+ORDER BY count DESC
+```
 
-Querying these columns raw (without the join) returns opaque IDs, not names.
+`_facet_array=tags` and column facets show names too, because the stored values are names.
+
+**Why denormalize instead of joining at query time?** Datasette renders facet values from the raw column and has **no hook to relabel them** (`render_cell` only affects table cells) — so the only way to get names in facets is to store names. The snapshot is a throwaway read-only copy, so dropping the IDs there is free.
+
+The `plugins/render_meta_names.py` `render_cell` hook then just prettifies the `tags` *cell* (`["go","rust"]` → `go, rust`); it's a harmless no-op for the single-value columns now that they already hold names.
 
 ### Dashboards
 
@@ -126,7 +132,7 @@ Order is `tailscale` → `app` → `datasette` (Datasette `depends_on` the app b
 2. **Chart** — add a chart under a dashboard's `charts:` in the top-level `plugins.datasette-dashboards` block. Charts use an inline `query:` plus a vega-lite `display:` spec (`mark` + `encoding`).
 3. Rebuild the container (`metadata.yml` is copied at build time): `docker compose up --build datasette`.
 
-Remember the relation-join rules above for any `tags`/`genre`/`platform`/`status`/`definition` aggregation.
+Snapshot columns already hold names (see Relation fields), so group on the column directly — no `meta` join.
 
 ## Deployment notes
 

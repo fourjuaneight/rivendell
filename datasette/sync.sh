@@ -26,10 +26,15 @@ cp "$SRC" "$TMP/data.db"
 [ -f "$SRC-wal" ] && cp "$SRC-wal" "$TMP/data.db-wal" || true
 [ -f "$SRC-shm" ] && cp "$SRC-shm" "$TMP/data.db-shm" || true
 
-# Snapshot the copy, then swap atomically so Datasette never sees a partial file.
-# VACUUM INTO requires the target not to exist.
+# Snapshot the copy. VACUUM INTO requires the target not to exist.
 rm -f "$DEST.tmp"
 sqlite3 "$TMP/data.db" "VACUUM INTO '$DEST.tmp'"
+
+# Denormalize relation columns (meta IDs -> names) so Datasette shows names in
+# table cells AND facets/filters. Done on the temp file before the atomic swap.
+SNAPSHOT="$DEST.tmp" python3 /app/denormalize.py
+
+# Swap atomically so Datasette never sees a partial/pre-denormalized file.
 mv -f "$DEST.tmp" "$DEST"
 rm -rf "$TMP"
 

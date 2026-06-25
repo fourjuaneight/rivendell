@@ -36,6 +36,7 @@ while true; do
     --immutable "$DEST" \
     --host 0.0.0.0 \
     --port 8001 \
+    --plugins-dir /app/plugins \
     --metadata /app/metadata.yml &
   DSPID=$!
 

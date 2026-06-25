@@ -16,6 +16,8 @@ WORKDIR /app
 COPY metadata.yml .
 COPY sync.sh .
 COPY entrypoint.sh .
+COPY denormalize.py .
+COPY plugins ./plugins
 
 RUN mkdir -p /data
 

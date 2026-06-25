@@ -111,10 +111,9 @@ plugins:
           title: Top 15 Tags
           db: rivendell
           query: |
-            SELECT m.name as tag, COUNT(*) as count
+            SELECT je.value as tag, COUNT(*) as count
             FROM articles a, json_each(a.tags) je
-            JOIN meta m ON m.id = je.value
-            GROUP BY m.name
+            GROUP BY je.value
             ORDER BY count DESC
             LIMIT 15
           library: vega-lite
@@ -187,10 +186,9 @@ plugins:
           title: Top 15 Tags
           db: rivendell
           query: |
-            SELECT m.name as tag, COUNT(*) as count
+            SELECT je.value as tag, COUNT(*) as count
             FROM podcasts p, json_each(p.tags) je
-            JOIN meta m ON m.id = je.value
-            GROUP BY m.name
+            GROUP BY je.value
             ORDER BY count DESC
             LIMIT 15
           library: vega-lite
@@ -239,10 +237,9 @@ plugins:
           title: Top 15 Tags
           db: rivendell
           query: |
-            SELECT m.name as tag, COUNT(*) as count
+            SELECT je.value as tag, COUNT(*) as count
             FROM videos v, json_each(v.tags) je
-            JOIN meta m ON m.id = je.value
-            GROUP BY m.name
+            GROUP BY je.value
             ORDER BY count DESC
             LIMIT 15
           library: vega-lite
@@ -291,11 +288,10 @@ plugins:
           title: By Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT b.genre as genre, COUNT(*) as count
             FROM books b
-            JOIN meta m ON m.id = b.genre
             WHERE b.genre IS NOT NULL AND b.genre != ''
-            GROUP BY m.name
+            GROUP BY b.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -308,11 +304,10 @@ plugins:
           title: By Status
           db: rivendell
           query: |
-            SELECT m.name as status, COUNT(*) as count
+            SELECT b.status as status, COUNT(*) as count
             FROM books b
-            JOIN meta m ON m.id = b.status
             WHERE b.status IS NOT NULL AND b.status != ''
-            GROUP BY m.name
+            GROUP BY b.status
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -344,11 +339,10 @@ plugins:
           title: By Platform
           db: rivendell
           query: |
-            SELECT m.name as platform, COUNT(*) as count
+            SELECT g.platform as platform, COUNT(*) as count
             FROM games g
-            JOIN meta m ON m.id = g.platform
             WHERE g.platform IS NOT NULL AND g.platform != ''
-            GROUP BY m.name
+            GROUP BY g.platform
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -361,11 +355,10 @@ plugins:
           title: By Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT g.genre as genre, COUNT(*) as count
             FROM games g
-            JOIN meta m ON m.id = g.genre
             WHERE g.genre IS NOT NULL AND g.genre != ''
-            GROUP BY m.name
+            GROUP BY g.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -378,11 +371,10 @@ plugins:
           title: By Status
           db: rivendell
           query: |
-            SELECT m.name as status, COUNT(*) as count
+            SELECT g.status as status, COUNT(*) as count
             FROM games g
-            JOIN meta m ON m.id = g.status
             WHERE g.status IS NOT NULL AND g.status != ''
-            GROUP BY m.name
+            GROUP BY g.status
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -448,11 +440,10 @@ plugins:
           title: By Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT mv.genre as genre, COUNT(*) as count
             FROM movies mv
-            JOIN meta m ON m.id = mv.genre
             WHERE mv.genre IS NOT NULL AND mv.genre != ''
-            GROUP BY m.name
+            GROUP BY mv.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -465,11 +456,10 @@ plugins:
           title: By Definition
           db: rivendell
           query: |
-            SELECT m.name as definition, COUNT(*) as count
+            SELECT mv.definition as definition, COUNT(*) as count
             FROM movies mv
-            JOIN meta m ON m.id = mv.definition
             WHERE mv.definition IS NOT NULL AND mv.definition != ''
-            GROUP BY m.name
+            GROUP BY mv.definition
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -482,11 +472,10 @@ plugins:
           title: By Status
           db: rivendell
           query: |
-            SELECT m.name as status, COUNT(*) as count
+            SELECT mv.status as status, COUNT(*) as count
             FROM movies mv
-            JOIN meta m ON m.id = mv.status
             WHERE mv.status IS NOT NULL AND mv.status != ''
-            GROUP BY m.name
+            GROUP BY mv.status
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -535,11 +524,10 @@ plugins:
           title: By Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT s.genre as genre, COUNT(*) as count
             FROM shows s
-            JOIN meta m ON m.id = s.genre
             WHERE s.genre IS NOT NULL AND s.genre != ''
-            GROUP BY m.name
+            GROUP BY s.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -552,11 +540,10 @@ plugins:
           title: By Status
           db: rivendell
           query: |
-            SELECT m.name as status, COUNT(*) as count
+            SELECT s.status as status, COUNT(*) as count
             FROM shows s
-            JOIN meta m ON m.id = s.status
             WHERE s.status IS NOT NULL AND s.status != ''
-            GROUP BY m.name
+            GROUP BY s.status
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -620,11 +607,10 @@ plugins:
           title: CDs by Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT c.genre as genre, COUNT(*) as count
             FROM cds c
-            JOIN meta m ON m.id = c.genre
             WHERE c.genre IS NOT NULL AND c.genre != ''
-            GROUP BY m.name
+            GROUP BY c.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -669,11 +655,10 @@ plugins:
           title: Vinyls by Genre
           db: rivendell
           query: |
-            SELECT m.name as genre, COUNT(*) as count
+            SELECT v.genre as genre, COUNT(*) as count
             FROM vinyls v
-            JOIN meta m ON m.id = v.genre
             WHERE v.genre IS NOT NULL AND v.genre != ''
-            GROUP BY m.name
+            GROUP BY v.genre
             ORDER BY count DESC
           library: vega-lite
           display:
@@ -738,10 +723,9 @@ plugins:
           title: Top 15 Feed Tags
           db: rivendell
           query: |
-            SELECT m.name as tag, COUNT(*) as count
+            SELECT je.value as tag, COUNT(*) as count
             FROM feeds f, json_each(f.tags) je
-            JOIN meta m ON m.id = je.value
-            GROUP BY m.name
+            GROUP BY je.value
             ORDER BY count DESC
             LIMIT 15
           library: vega-lite
@@ -860,22 +844,20 @@ databases:
         title: Article Tag Frequency
         description: How often each tag is used across articles
         sql: |
-          SELECT m.name as tag, COUNT(*) as count
+          SELECT je.value as tag, COUNT(*) as count
           FROM articles a, json_each(a.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY m.name
+          GROUP BY je.value
           ORDER BY count DESC
 
       articles_tags_by_year:
         title: Article Tags by Year
         description: Tag usage broken down by year
         sql: |
-          SELECT m.name as tag, a.year, COUNT(*) as count
+          SELECT je.value as tag, a.year, COUNT(*) as count
           FROM articles a, json_each(a.tags) je
-          JOIN meta m ON m.id = je.value
           WHERE a.year IS NOT NULL AND a.year != 0
-          GROUP BY m.name, a.year
-          ORDER BY m.name, a.year DESC
+          GROUP BY je.value, a.year
+          ORDER BY je.value, a.year DESC
 
       podcasts_per_year:
         title: Podcasts per Year
@@ -898,10 +880,9 @@ databases:
       podcasts_tags:
         title: Podcast Tag Frequency
         sql: |
-          SELECT m.name as tag, COUNT(*) as count
+          SELECT je.value as tag, COUNT(*) as count
           FROM podcasts p, json_each(p.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY m.name
+          GROUP BY je.value
           ORDER BY count DESC
 
       videos_per_year:
@@ -925,10 +906,9 @@ databases:
       videos_tags:
         title: Video Tag Frequency
         sql: |
-          SELECT m.name as tag, COUNT(*) as count
+          SELECT je.value as tag, COUNT(*) as count
           FROM videos v, json_each(v.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY m.name
+          GROUP BY je.value
           ORDER BY count DESC
 
       books_per_year:
@@ -961,21 +941,19 @@ databases:
       games_by_platform:
         title: Games by Platform
         sql: |
-          SELECT m.name as platform, COUNT(*) as count
+          SELECT g.platform as platform, COUNT(*) as count
           FROM games g
-          JOIN meta m ON m.id = g.platform
           WHERE g.platform IS NOT NULL AND g.platform != ''
-          GROUP BY m.name
+          GROUP BY g.platform
           ORDER BY count DESC
 
       games_by_status:
         title: Games by Status
         sql: |
-          SELECT m.name as status, COUNT(*) as count
+          SELECT g.status as status, COUNT(*) as count
           FROM games g
-          JOIN meta m ON m.id = g.status
           WHERE g.status IS NOT NULL AND g.status != ''
-          GROUP BY m.name
+          GROUP BY g.status
           ORDER BY count DESC
 
       movies_per_year:
@@ -1000,11 +978,10 @@ databases:
       movies_by_genre:
         title: Movies by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT mv.genre as genre, COUNT(*) as count
           FROM movies mv
-          JOIN meta m ON m.id = mv.genre
           WHERE mv.genre IS NOT NULL AND mv.genre != ''
-          GROUP BY m.name
+          GROUP BY mv.genre
           ORDER BY count DESC
 
       shows_per_year:
@@ -1056,81 +1033,73 @@ databases:
         title: Article Tags by Creator
         description: Tag usage broken down by creator
         sql: |
-          SELECT a.creator, m.name as tag, COUNT(*) as count
+          SELECT a.creator, je.value as tag, COUNT(*) as count
           FROM articles a, json_each(a.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY a.creator, m.name
+          GROUP BY a.creator, je.value
           ORDER BY count DESC
           LIMIT 200
 
       podcasts_tags_by_year:
         title: Podcast Tags by Year
         sql: |
-          SELECT m.name as tag, p.year, COUNT(*) as count
+          SELECT je.value as tag, p.year, COUNT(*) as count
           FROM podcasts p, json_each(p.tags) je
-          JOIN meta m ON m.id = je.value
           WHERE p.year IS NOT NULL AND p.year != 0
-          GROUP BY m.name, p.year
-          ORDER BY m.name, p.year DESC
+          GROUP BY je.value, p.year
+          ORDER BY je.value, p.year DESC
 
       podcasts_tags_by_creator:
         title: Podcast Tags by Creator
         sql: |
-          SELECT p.creator, m.name as tag, COUNT(*) as count
+          SELECT p.creator, je.value as tag, COUNT(*) as count
           FROM podcasts p, json_each(p.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY p.creator, m.name
+          GROUP BY p.creator, je.value
           ORDER BY count DESC
           LIMIT 200
 
       videos_tags_by_year:
         title: Video Tags by Year
         sql: |
-          SELECT m.name as tag, v.year, COUNT(*) as count
+          SELECT je.value as tag, v.year, COUNT(*) as count
           FROM videos v, json_each(v.tags) je
-          JOIN meta m ON m.id = je.value
           WHERE v.year IS NOT NULL AND v.year != 0
-          GROUP BY m.name, v.year
-          ORDER BY m.name, v.year DESC
+          GROUP BY je.value, v.year
+          ORDER BY je.value, v.year DESC
 
       videos_tags_by_creator:
         title: Video Tags by Creator
         sql: |
-          SELECT v.creator, m.name as tag, COUNT(*) as count
+          SELECT v.creator, je.value as tag, COUNT(*) as count
           FROM videos v, json_each(v.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY v.creator, m.name
+          GROUP BY v.creator, je.value
           ORDER BY count DESC
           LIMIT 200
 
       books_by_genre:
         title: Books by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT b.genre as genre, COUNT(*) as count
           FROM books b
-          JOIN meta m ON m.id = b.genre
           WHERE b.genre IS NOT NULL AND b.genre != ''
-          GROUP BY m.name
+          GROUP BY b.genre
           ORDER BY count DESC
 
       books_by_status:
         title: Books by Status
         sql: |
-          SELECT m.name as status, COUNT(*) as count
+          SELECT b.status as status, COUNT(*) as count
           FROM books b
-          JOIN meta m ON m.id = b.status
           WHERE b.status IS NOT NULL AND b.status != ''
-          GROUP BY m.name
+          GROUP BY b.status
           ORDER BY count DESC
 
       games_by_genre:
         title: Games by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT g.genre as genre, COUNT(*) as count
           FROM games g
-          JOIN meta m ON m.id = g.genre
           WHERE g.genre IS NOT NULL AND g.genre != ''
-          GROUP BY m.name
+          GROUP BY g.genre
           ORDER BY count DESC
 
       games_top_publishers:
@@ -1146,21 +1115,19 @@ databases:
       movies_by_definition:
         title: Movies by Definition
         sql: |
-          SELECT m.name as definition, COUNT(*) as count
+          SELECT mv.definition as definition, COUNT(*) as count
           FROM movies mv
-          JOIN meta m ON m.id = mv.definition
           WHERE mv.definition IS NOT NULL AND mv.definition != ''
-          GROUP BY m.name
+          GROUP BY mv.definition
           ORDER BY count DESC
 
       movies_by_status:
         title: Movies by Status
         sql: |
-          SELECT m.name as status, COUNT(*) as count
+          SELECT mv.status as status, COUNT(*) as count
           FROM movies mv
-          JOIN meta m ON m.id = mv.status
           WHERE mv.status IS NOT NULL AND mv.status != ''
-          GROUP BY m.name
+          GROUP BY mv.status
           ORDER BY count DESC
 
       shows_top_directors:
@@ -1176,31 +1143,28 @@ databases:
       shows_by_genre:
         title: Shows by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT s.genre as genre, COUNT(*) as count
           FROM shows s
-          JOIN meta m ON m.id = s.genre
           WHERE s.genre IS NOT NULL AND s.genre != ''
-          GROUP BY m.name
+          GROUP BY s.genre
           ORDER BY count DESC
 
       shows_by_definition:
         title: Shows by Definition
         sql: |
-          SELECT m.name as definition, COUNT(*) as count
+          SELECT s.definition as definition, COUNT(*) as count
           FROM shows s
-          JOIN meta m ON m.id = s.definition
           WHERE s.definition IS NOT NULL AND s.definition != ''
-          GROUP BY m.name
+          GROUP BY s.definition
           ORDER BY count DESC
 
       shows_by_status:
         title: Shows by Status
         sql: |
-          SELECT m.name as status, COUNT(*) as count
+          SELECT s.status as status, COUNT(*) as count
           FROM shows s
-          JOIN meta m ON m.id = s.status
           WHERE s.status IS NOT NULL AND s.status != ''
-          GROUP BY m.name
+          GROUP BY s.status
           ORDER BY count DESC
 
       shows_by_season:
@@ -1215,21 +1179,19 @@ databases:
       cds_by_genre:
         title: CDs by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT c.genre as genre, COUNT(*) as count
           FROM cds c
-          JOIN meta m ON m.id = c.genre
           WHERE c.genre IS NOT NULL AND c.genre != ''
-          GROUP BY m.name
+          GROUP BY c.genre
           ORDER BY count DESC
 
       vinyls_by_genre:
         title: Vinyls by Genre
         sql: |
-          SELECT m.name as genre, COUNT(*) as count
+          SELECT v.genre as genre, COUNT(*) as count
           FROM vinyls v
-          JOIN meta m ON m.id = v.genre
           WHERE v.genre IS NOT NULL AND v.genre != ''
-          GROUP BY m.name
+          GROUP BY v.genre
           ORDER BY count DESC
 
       github_by_language:
@@ -1263,10 +1225,9 @@ databases:
       feeds_tags:
         title: Feed Tag Frequency
         sql: |
-          SELECT m.name as tag, COUNT(*) as count
+          SELECT je.value as tag, COUNT(*) as count
           FROM feeds f, json_each(f.tags) je
-          JOIN meta m ON m.id = je.value
-          GROUP BY m.name
+          GROUP BY je.value
           ORDER BY count DESC
 
       favorites_by_collection:
