@@ -55,9 +55,75 @@ services:
       tailscale:
         condition: service_healthy
 
+  datasette:
+    container_name: datasette
+    restart: unless-stopped
+    build:
+      context: ./datasette
+      dockerfile: Dockerfile
+    networks:
+      - internal
+    volumes:
+      - ./pb_data:/data/pb_data:ro
+      - datasette-data:/data
+    ports:
+      - "127.0.0.1:8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001')"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Dedicated Tailscale node so Datasette gets its own hostname
+  # (rivendell-datasette.<tailnet>.ts.net) served at the root on :443 — no path
+  # prefix, no base_url, so no link can lose a prefix. Mirrors the main tailscale
+  # service with its own state + its own auth key (TS_AUTHKEY_DATASETTE). The key
+  # can be single-use: TS_AUTH_ONCE + the state volume persist the node after first auth.
+  tailscale-datasette:
+    image: tailscale/tailscale:latest
+    restart: unless-stopped
+    hostname: rivendell-datasette
+    networks:
+      - internal
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY_DATASETTE}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SOCKET=/var/run/tailscale/tailscaled.sock
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_TAILSCALED_EXTRA_ARGS=--port=0
+      - TS_AUTH_ONCE=true
+      - TS_ENABLE_HEALTH_CHECK=true
+      - TS_LOCAL_ADDR_PORT=127.0.0.1:41235
+    command: sh -c "rm -f /var/run/tailscale/tailscaled.sock && /usr/local/bin/containerboot"
+    volumes:
+      - ./serve-datasette.json:/config/serve.json:ro
+      - tailscale-datasette-state:/var/lib/tailscale
+      - tailscale-datasette-sock:/var/run/tailscale
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:41235/healthz"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      datasette:
+        condition: service_healthy
+
 volumes:
   tailscale-state:
   tailscale-sock:
+  tailscale-datasette-state:
+  tailscale-datasette-sock:
+  datasette-data:
 
 networks:
   internal:

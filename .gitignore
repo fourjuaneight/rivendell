@@ -3,3 +3,4 @@ migrations
 rivendell
 .env
 serve.json
+serve-datasette.json

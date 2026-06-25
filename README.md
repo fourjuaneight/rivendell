@@ -8,6 +8,7 @@ Personal bookmarking, media collection, and archiving database powered by [Pocke
 - [API.md](API.md) — how to create and query records; which fields are manual vs. auto-filled
 - [MIGRATIONS.md](MIGRATIONS.md) — how schema migrations work and how to write new ones
 - [TESTING.md](TESTING.md) — what's tested, how to run tests, and bugs found during testing
+- [DATASETTE.md](DATASETTE.md) — read-only analytics layer: dashboards, canned queries, snapshot sync, Tailscale URL
 
 ---
 
@@ -24,7 +25,7 @@ Personal bookmarking, media collection, and archiving database powered by [Pocke
   - Discogs (CDs, vinyls): `DISCOGS_TOKEN`
   - YouTube Data API v3: `YOUTUBE_KEY`
   - PocketBase meta collection ID: `META_ID`
-  - Tailscale auth key: `TS_AUTHKEY`
+  - Tailscale auth keys: `TS_AUTHKEY` (app node), `TS_AUTHKEY_DATASETTE` (datasette analytics node)
 
 ## Setup
 
@@ -46,6 +47,7 @@ DISCOGS_TOKEN=
 YOUTUBE_KEY=
 META_ID=
 TS_AUTHKEY=
+TS_AUTHKEY_DATASETTE=
 EOF
 ```
 

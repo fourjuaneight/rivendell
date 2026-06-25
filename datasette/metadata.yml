@@ -1,0 +1,1318 @@
+title: Rivendell Datasette
+description: Pattern analysis for the Rivendell media collection
+plugins:
+  datasette-dashboards:
+    rivendell-overview:
+      title: Rivendell Overview
+      description: Cross-collection patterns at a glance
+      charts:
+        collection-sizes:
+          title: Collection Sizes
+          db: rivendell
+          query: |
+            SELECT 'articles' as collection, COUNT(*) as count FROM articles
+            UNION ALL SELECT 'podcasts', COUNT(*) FROM podcasts
+            UNION ALL SELECT 'videos', COUNT(*) FROM videos
+            UNION ALL SELECT 'books', COUNT(*) FROM books
+            UNION ALL SELECT 'cds', COUNT(*) FROM cds
+            UNION ALL SELECT 'games', COUNT(*) FROM games
+            UNION ALL SELECT 'movies', COUNT(*) FROM movies
+            UNION ALL SELECT 'shows', COUNT(*) FROM shows
+            UNION ALL SELECT 'vinyls', COUNT(*) FROM vinyls
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: collection, type: nominal, sort: "-y"}
+              y: {field: count, type: quantitative}
+              color: {field: collection, type: nominal}
+
+        all-media-by-year:
+          title: All Media by Year
+          db: rivendell
+          query: |
+            SELECT year, type, COUNT(*) as count FROM (
+              SELECT year, 'articles' as type FROM articles WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'podcasts' FROM podcasts WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'videos' FROM videos WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'books' FROM books WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'cds' FROM cds WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'games' FROM games WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'movies' FROM movies WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'shows' FROM shows WHERE year IS NOT NULL AND year != 0
+              UNION ALL SELECT year, 'vinyls' FROM vinyls WHERE year IS NOT NULL AND year != 0
+            )
+            GROUP BY year, type
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+              color: {field: type, type: nominal}
+
+        favorites-by-collection:
+          title: Favorites by Collection
+          db: rivendell
+          query: |
+            SELECT 'articles' as collection, COUNT(*) as count FROM articles WHERE favorite = 1
+            UNION ALL SELECT 'podcasts', COUNT(*) FROM podcasts WHERE favorite = 1
+            UNION ALL SELECT 'videos', COUNT(*) FROM videos WHERE favorite = 1
+            UNION ALL SELECT 'books', COUNT(*) FROM books WHERE favorite = 1
+            UNION ALL SELECT 'games', COUNT(*) FROM games WHERE favorite = 1
+            UNION ALL SELECT 'movies', COUNT(*) FROM movies WHERE favorite = 1
+            UNION ALL SELECT 'shows', COUNT(*) FROM shows WHERE favorite = 1
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: collection, type: nominal, sort: "-y"}
+              y: {field: count, type: quantitative}
+              color: {field: collection, type: nominal}
+
+    articles-dashboard:
+      title: Articles
+      description: Article patterns by year, creator, tag, and domain
+      charts:
+        articles-by-year:
+          title: Articles by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM articles
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        articles-top-creators:
+          title: Top 10 Creators
+          db: rivendell
+          query: |
+            SELECT creator, COUNT(*) as count
+            FROM articles
+            GROUP BY creator
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: creator, type: nominal, sort: "-x"}
+
+        articles-top-tags:
+          title: Top 15 Tags
+          db: rivendell
+          query: |
+            SELECT m.name as tag, COUNT(*) as count
+            FROM articles a, json_each(a.tags) je
+            JOIN meta m ON m.id = je.value
+            GROUP BY m.name
+            ORDER BY count DESC
+            LIMIT 15
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: tag, type: nominal, sort: "-x"}
+
+        articles-top-domains:
+          title: Top 10 Domains
+          db: rivendell
+          query: |
+            SELECT
+              CASE
+                WHEN url LIKE 'https://%' THEN
+                  SUBSTR(url, 9, INSTR(SUBSTR(url, 9), '/') - 1)
+                WHEN url LIKE 'http://%' THEN
+                  SUBSTR(url, 8, INSTR(SUBSTR(url, 8), '/') - 1)
+                ELSE url
+              END as domain,
+              COUNT(*) as count
+            FROM articles
+            GROUP BY domain
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: domain, type: nominal, sort: "-x"}
+
+    podcasts-dashboard:
+      title: Podcasts
+      charts:
+        podcasts-by-year:
+          title: Podcasts by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM podcasts
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        podcasts-top-creators:
+          title: Top 10 Creators
+          db: rivendell
+          query: |
+            SELECT creator, COUNT(*) as count
+            FROM podcasts
+            GROUP BY creator
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: creator, type: nominal, sort: "-x"}
+
+        podcasts-top-tags:
+          title: Top 15 Tags
+          db: rivendell
+          query: |
+            SELECT m.name as tag, COUNT(*) as count
+            FROM podcasts p, json_each(p.tags) je
+            JOIN meta m ON m.id = je.value
+            GROUP BY m.name
+            ORDER BY count DESC
+            LIMIT 15
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: tag, type: nominal, sort: "-x"}
+
+    videos-dashboard:
+      title: Videos
+      charts:
+        videos-by-year:
+          title: Videos by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM videos
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        videos-top-creators:
+          title: Top 10 Creators
+          db: rivendell
+          query: |
+            SELECT creator, COUNT(*) as count
+            FROM videos
+            GROUP BY creator
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: creator, type: nominal, sort: "-x"}
+
+        videos-top-tags:
+          title: Top 15 Tags
+          db: rivendell
+          query: |
+            SELECT m.name as tag, COUNT(*) as count
+            FROM videos v, json_each(v.tags) je
+            JOIN meta m ON m.id = je.value
+            GROUP BY m.name
+            ORDER BY count DESC
+            LIMIT 15
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: tag, type: nominal, sort: "-x"}
+
+    books-dashboard:
+      title: Books
+      charts:
+        books-by-year:
+          title: Books by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM books
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        books-top-authors:
+          title: Top 10 Authors
+          db: rivendell
+          query: |
+            SELECT author, COUNT(*) as count
+            FROM books
+            GROUP BY author
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: author, type: nominal, sort: "-x"}
+
+        books-by-genre:
+          title: By Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM books b
+            JOIN meta m ON m.id = b.genre
+            WHERE b.genre IS NOT NULL AND b.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+        books-by-status:
+          title: By Status
+          db: rivendell
+          query: |
+            SELECT m.name as status, COUNT(*) as count
+            FROM books b
+            JOIN meta m ON m.id = b.status
+            WHERE b.status IS NOT NULL AND b.status != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: status, type: nominal}
+
+    games-dashboard:
+      title: Games
+      charts:
+        games-by-year:
+          title: Games by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM games
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        games-by-platform:
+          title: By Platform
+          db: rivendell
+          query: |
+            SELECT m.name as platform, COUNT(*) as count
+            FROM games g
+            JOIN meta m ON m.id = g.platform
+            WHERE g.platform IS NOT NULL AND g.platform != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: platform, type: nominal, sort: "-x"}
+
+        games-by-genre:
+          title: By Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM games g
+            JOIN meta m ON m.id = g.genre
+            WHERE g.genre IS NOT NULL AND g.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+        games-by-status:
+          title: By Status
+          db: rivendell
+          query: |
+            SELECT m.name as status, COUNT(*) as count
+            FROM games g
+            JOIN meta m ON m.id = g.status
+            WHERE g.status IS NOT NULL AND g.status != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: status, type: nominal}
+
+        games-top-publishers:
+          title: Top 10 Publishers
+          db: rivendell
+          query: |
+            SELECT publisher, COUNT(*) as count
+            FROM games
+            WHERE publisher IS NOT NULL AND publisher != ''
+            GROUP BY publisher
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: publisher, type: nominal, sort: "-x"}
+
+    movies-dashboard:
+      title: Movies
+      charts:
+        movies-by-year:
+          title: Movies by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM movies
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        movies-top-directors:
+          title: Top 10 Directors
+          db: rivendell
+          query: |
+            SELECT director, COUNT(*) as count
+            FROM movies
+            WHERE director IS NOT NULL AND director != ''
+            GROUP BY director
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: director, type: nominal, sort: "-x"}
+
+        movies-by-genre:
+          title: By Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM movies mv
+            JOIN meta m ON m.id = mv.genre
+            WHERE mv.genre IS NOT NULL AND mv.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+        movies-by-definition:
+          title: By Definition
+          db: rivendell
+          query: |
+            SELECT m.name as definition, COUNT(*) as count
+            FROM movies mv
+            JOIN meta m ON m.id = mv.definition
+            WHERE mv.definition IS NOT NULL AND mv.definition != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: definition, type: nominal}
+
+        movies-by-status:
+          title: By Status
+          db: rivendell
+          query: |
+            SELECT m.name as status, COUNT(*) as count
+            FROM movies mv
+            JOIN meta m ON m.id = mv.status
+            WHERE mv.status IS NOT NULL AND mv.status != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: status, type: nominal}
+
+    shows-dashboard:
+      title: Shows
+      charts:
+        shows-by-year:
+          title: Shows by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM shows
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        shows-top-directors:
+          title: Top 10 Directors
+          db: rivendell
+          query: |
+            SELECT director, COUNT(*) as count
+            FROM shows
+            WHERE director IS NOT NULL AND director != ''
+            GROUP BY director
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: director, type: nominal, sort: "-x"}
+
+        shows-by-genre:
+          title: By Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM shows s
+            JOIN meta m ON m.id = s.genre
+            WHERE s.genre IS NOT NULL AND s.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+        shows-by-status:
+          title: By Status
+          db: rivendell
+          query: |
+            SELECT m.name as status, COUNT(*) as count
+            FROM shows s
+            JOIN meta m ON m.id = s.status
+            WHERE s.status IS NOT NULL AND s.status != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: status, type: nominal}
+
+        shows-by-season:
+          title: By Season
+          db: rivendell
+          query: |
+            SELECT season, COUNT(*) as count
+            FROM shows
+            WHERE season IS NOT NULL AND season != 0
+            GROUP BY season
+            ORDER BY season
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: season, type: ordinal}
+              y: {field: count, type: quantitative}
+
+    music-dashboard:
+      title: Music (CDs & Vinyls)
+      charts:
+        cds-by-year:
+          title: CDs by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM cds
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        cds-top-artists:
+          title: Top 10 CD Artists
+          db: rivendell
+          query: |
+            SELECT artist, COUNT(*) as count
+            FROM cds
+            GROUP BY artist
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: artist, type: nominal, sort: "-x"}
+
+        cds-by-genre:
+          title: CDs by Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM cds c
+            JOIN meta m ON m.id = c.genre
+            WHERE c.genre IS NOT NULL AND c.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+        vinyls-by-year:
+          title: Vinyls by Year
+          db: rivendell
+          query: |
+            SELECT year, COUNT(*) as count
+            FROM vinyls
+            WHERE year IS NOT NULL AND year != 0
+            GROUP BY year
+            ORDER BY year
+          library: vega-lite
+          display:
+            mark: line
+            encoding:
+              x: {field: year, type: ordinal}
+              y: {field: count, type: quantitative}
+
+        vinyls-top-artists:
+          title: Top 10 Vinyl Artists
+          db: rivendell
+          query: |
+            SELECT artist, COUNT(*) as count
+            FROM vinyls
+            GROUP BY artist
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: artist, type: nominal, sort: "-x"}
+
+        vinyls-by-genre:
+          title: Vinyls by Genre
+          db: rivendell
+          query: |
+            SELECT m.name as genre, COUNT(*) as count
+            FROM vinyls v
+            JOIN meta m ON m.id = v.genre
+            WHERE v.genre IS NOT NULL AND v.genre != ''
+            GROUP BY m.name
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: genre, type: nominal, sort: "-x"}
+
+    code-feeds-dashboard:
+      title: Code & Feeds
+      charts:
+        github-by-language:
+          title: GitHub by Language
+          db: rivendell
+          query: |
+            SELECT language, COUNT(*) as count
+            FROM github
+            WHERE language IS NOT NULL AND language != ''
+            GROUP BY language
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: language, type: nominal, sort: "-x"}
+
+        github-top-owners:
+          title: Top 10 GitHub Owners
+          db: rivendell
+          query: |
+            SELECT owner, COUNT(*) as count
+            FROM github
+            WHERE owner IS NOT NULL AND owner != ''
+            GROUP BY owner
+            ORDER BY count DESC
+            LIMIT 10
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: owner, type: nominal, sort: "-x"}
+
+        feeds-by-type:
+          title: Feeds by Type
+          db: rivendell
+          query: |
+            SELECT type, COUNT(*) as count
+            FROM feeds
+            WHERE type IS NOT NULL AND type != ''
+            GROUP BY type
+            ORDER BY count DESC
+          library: vega-lite
+          display:
+            mark: arc
+            encoding:
+              theta: {field: count, type: quantitative}
+              color: {field: type, type: nominal}
+
+        feeds-top-tags:
+          title: Top 15 Feed Tags
+          db: rivendell
+          query: |
+            SELECT m.name as tag, COUNT(*) as count
+            FROM feeds f, json_each(f.tags) je
+            JOIN meta m ON m.id = je.value
+            GROUP BY m.name
+            ORDER BY count DESC
+            LIMIT 15
+          library: vega-lite
+          display:
+            mark: bar
+            encoding:
+              x: {field: count, type: quantitative}
+              y: {field: tag, type: nominal, sort: "-x"}
+
+
+databases:
+  rivendell:
+    title: Rivendell
+    description: PocketBase media collection data
+    tables:
+      articles:
+        title: Articles
+        description: Saved articles with archive links
+        facets:
+          - creator
+          - year
+      podcasts:
+        title: Podcasts
+        facets:
+          - creator
+          - year
+      videos:
+        title: Videos
+        facets:
+          - creator
+          - year
+      books:
+        title: Books
+        facets:
+          - author
+          - year
+      cds:
+        title: CDs
+        facets:
+          - artist
+          - year
+      vinyls:
+        title: Vinyls
+        facets:
+          - artist
+          - year
+      games:
+        title: Games
+        facets:
+          - year
+      movies:
+        title: Movies
+        facets:
+          - director
+          - year
+      shows:
+        title: Shows
+        facets:
+          - director
+          - year
+      meta:
+        title: Meta (Tags/Genres/Platforms)
+        facets:
+          - type
+
+    queries:
+      articles_per_year:
+        title: Articles per Year
+        description: Count of articles grouped by year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM articles
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      articles_top_creators:
+        title: Top Article Creators
+        description: Creators with most articles
+        sql: |
+          SELECT creator, COUNT(*) as count
+          FROM articles
+          GROUP BY creator
+          ORDER BY count DESC
+          LIMIT 50
+
+      articles_repeat_creators:
+        title: Repeat Creators (Articles)
+        description: Creators who appear more than once
+        sql: |
+          SELECT creator, COUNT(*) as count
+          FROM articles
+          GROUP BY creator
+          HAVING count > 1
+          ORDER BY count DESC
+
+      articles_by_domain:
+        title: Articles by Domain
+        description: Article count by base URL domain
+        sql: |
+          SELECT
+            CASE
+              WHEN url LIKE 'https://%' THEN
+                SUBSTR(url, 9, INSTR(SUBSTR(url, 9), '/') - 1)
+              WHEN url LIKE 'http://%' THEN
+                SUBSTR(url, 8, INSTR(SUBSTR(url, 8), '/') - 1)
+              ELSE url
+            END as domain,
+            COUNT(*) as count
+          FROM articles
+          GROUP BY domain
+          ORDER BY count DESC
+          LIMIT 50
+
+      articles_tags:
+        title: Article Tag Frequency
+        description: How often each tag is used across articles
+        sql: |
+          SELECT m.name as tag, COUNT(*) as count
+          FROM articles a, json_each(a.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      articles_tags_by_year:
+        title: Article Tags by Year
+        description: Tag usage broken down by year
+        sql: |
+          SELECT m.name as tag, a.year, COUNT(*) as count
+          FROM articles a, json_each(a.tags) je
+          JOIN meta m ON m.id = je.value
+          WHERE a.year IS NOT NULL AND a.year != 0
+          GROUP BY m.name, a.year
+          ORDER BY m.name, a.year DESC
+
+      podcasts_per_year:
+        title: Podcasts per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM podcasts
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      podcasts_top_creators:
+        title: Top Podcast Creators
+        sql: |
+          SELECT creator, COUNT(*) as count
+          FROM podcasts
+          GROUP BY creator
+          ORDER BY count DESC
+          LIMIT 50
+
+      podcasts_tags:
+        title: Podcast Tag Frequency
+        sql: |
+          SELECT m.name as tag, COUNT(*) as count
+          FROM podcasts p, json_each(p.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      videos_per_year:
+        title: Videos per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM videos
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      videos_top_creators:
+        title: Top Video Creators
+        sql: |
+          SELECT creator, COUNT(*) as count
+          FROM videos
+          GROUP BY creator
+          ORDER BY count DESC
+          LIMIT 50
+
+      videos_tags:
+        title: Video Tag Frequency
+        sql: |
+          SELECT m.name as tag, COUNT(*) as count
+          FROM videos v, json_each(v.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      books_per_year:
+        title: Books per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM books
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      books_top_authors:
+        title: Top Book Authors
+        sql: |
+          SELECT author, COUNT(*) as count
+          FROM books
+          GROUP BY author
+          ORDER BY count DESC
+          LIMIT 50
+
+      games_per_year:
+        title: Games per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM games
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      games_by_platform:
+        title: Games by Platform
+        sql: |
+          SELECT m.name as platform, COUNT(*) as count
+          FROM games g
+          JOIN meta m ON m.id = g.platform
+          WHERE g.platform IS NOT NULL AND g.platform != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      games_by_status:
+        title: Games by Status
+        sql: |
+          SELECT m.name as status, COUNT(*) as count
+          FROM games g
+          JOIN meta m ON m.id = g.status
+          WHERE g.status IS NOT NULL AND g.status != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      movies_per_year:
+        title: Movies per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM movies
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      movies_top_directors:
+        title: Top Movie Directors
+        sql: |
+          SELECT director, COUNT(*) as count
+          FROM movies
+          WHERE director IS NOT NULL AND director != ''
+          GROUP BY director
+          ORDER BY count DESC
+          LIMIT 50
+
+      movies_by_genre:
+        title: Movies by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM movies mv
+          JOIN meta m ON m.id = mv.genre
+          WHERE mv.genre IS NOT NULL AND mv.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      shows_per_year:
+        title: Shows per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM shows
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      cds_per_year:
+        title: CDs per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM cds
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      cds_top_artists:
+        title: Top CD Artists
+        sql: |
+          SELECT artist, COUNT(*) as count
+          FROM cds
+          GROUP BY artist
+          ORDER BY count DESC
+          LIMIT 50
+
+      vinyls_per_year:
+        title: Vinyls per Year
+        sql: |
+          SELECT year, COUNT(*) as count
+          FROM vinyls
+          WHERE year IS NOT NULL AND year != 0
+          GROUP BY year
+          ORDER BY year DESC
+
+      vinyls_top_artists:
+        title: Top Vinyl Artists
+        sql: |
+          SELECT artist, COUNT(*) as count
+          FROM vinyls
+          GROUP BY artist
+          ORDER BY count DESC
+          LIMIT 50
+
+      articles_tags_by_creator:
+        title: Article Tags by Creator
+        description: Tag usage broken down by creator
+        sql: |
+          SELECT a.creator, m.name as tag, COUNT(*) as count
+          FROM articles a, json_each(a.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY a.creator, m.name
+          ORDER BY count DESC
+          LIMIT 200
+
+      podcasts_tags_by_year:
+        title: Podcast Tags by Year
+        sql: |
+          SELECT m.name as tag, p.year, COUNT(*) as count
+          FROM podcasts p, json_each(p.tags) je
+          JOIN meta m ON m.id = je.value
+          WHERE p.year IS NOT NULL AND p.year != 0
+          GROUP BY m.name, p.year
+          ORDER BY m.name, p.year DESC
+
+      podcasts_tags_by_creator:
+        title: Podcast Tags by Creator
+        sql: |
+          SELECT p.creator, m.name as tag, COUNT(*) as count
+          FROM podcasts p, json_each(p.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY p.creator, m.name
+          ORDER BY count DESC
+          LIMIT 200
+
+      videos_tags_by_year:
+        title: Video Tags by Year
+        sql: |
+          SELECT m.name as tag, v.year, COUNT(*) as count
+          FROM videos v, json_each(v.tags) je
+          JOIN meta m ON m.id = je.value
+          WHERE v.year IS NOT NULL AND v.year != 0
+          GROUP BY m.name, v.year
+          ORDER BY m.name, v.year DESC
+
+      videos_tags_by_creator:
+        title: Video Tags by Creator
+        sql: |
+          SELECT v.creator, m.name as tag, COUNT(*) as count
+          FROM videos v, json_each(v.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY v.creator, m.name
+          ORDER BY count DESC
+          LIMIT 200
+
+      books_by_genre:
+        title: Books by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM books b
+          JOIN meta m ON m.id = b.genre
+          WHERE b.genre IS NOT NULL AND b.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      books_by_status:
+        title: Books by Status
+        sql: |
+          SELECT m.name as status, COUNT(*) as count
+          FROM books b
+          JOIN meta m ON m.id = b.status
+          WHERE b.status IS NOT NULL AND b.status != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      games_by_genre:
+        title: Games by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM games g
+          JOIN meta m ON m.id = g.genre
+          WHERE g.genre IS NOT NULL AND g.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      games_top_publishers:
+        title: Top Game Publishers
+        sql: |
+          SELECT publisher, COUNT(*) as count
+          FROM games
+          WHERE publisher IS NOT NULL AND publisher != ''
+          GROUP BY publisher
+          ORDER BY count DESC
+          LIMIT 50
+
+      movies_by_definition:
+        title: Movies by Definition
+        sql: |
+          SELECT m.name as definition, COUNT(*) as count
+          FROM movies mv
+          JOIN meta m ON m.id = mv.definition
+          WHERE mv.definition IS NOT NULL AND mv.definition != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      movies_by_status:
+        title: Movies by Status
+        sql: |
+          SELECT m.name as status, COUNT(*) as count
+          FROM movies mv
+          JOIN meta m ON m.id = mv.status
+          WHERE mv.status IS NOT NULL AND mv.status != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      shows_top_directors:
+        title: Top Show Directors
+        sql: |
+          SELECT director, COUNT(*) as count
+          FROM shows
+          WHERE director IS NOT NULL AND director != ''
+          GROUP BY director
+          ORDER BY count DESC
+          LIMIT 50
+
+      shows_by_genre:
+        title: Shows by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM shows s
+          JOIN meta m ON m.id = s.genre
+          WHERE s.genre IS NOT NULL AND s.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      shows_by_definition:
+        title: Shows by Definition
+        sql: |
+          SELECT m.name as definition, COUNT(*) as count
+          FROM shows s
+          JOIN meta m ON m.id = s.definition
+          WHERE s.definition IS NOT NULL AND s.definition != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      shows_by_status:
+        title: Shows by Status
+        sql: |
+          SELECT m.name as status, COUNT(*) as count
+          FROM shows s
+          JOIN meta m ON m.id = s.status
+          WHERE s.status IS NOT NULL AND s.status != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      shows_by_season:
+        title: Shows by Season
+        sql: |
+          SELECT season, COUNT(*) as count
+          FROM shows
+          WHERE season IS NOT NULL AND season != 0
+          GROUP BY season
+          ORDER BY season
+
+      cds_by_genre:
+        title: CDs by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM cds c
+          JOIN meta m ON m.id = c.genre
+          WHERE c.genre IS NOT NULL AND c.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      vinyls_by_genre:
+        title: Vinyls by Genre
+        sql: |
+          SELECT m.name as genre, COUNT(*) as count
+          FROM vinyls v
+          JOIN meta m ON m.id = v.genre
+          WHERE v.genre IS NOT NULL AND v.genre != ''
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      github_by_language:
+        title: GitHub Repos by Language
+        sql: |
+          SELECT language, COUNT(*) as count
+          FROM github
+          WHERE language IS NOT NULL AND language != ''
+          GROUP BY language
+          ORDER BY count DESC
+
+      github_top_owners:
+        title: Top GitHub Owners
+        sql: |
+          SELECT owner, COUNT(*) as count
+          FROM github
+          WHERE owner IS NOT NULL AND owner != ''
+          GROUP BY owner
+          ORDER BY count DESC
+          LIMIT 50
+
+      feeds_by_type:
+        title: Feeds by Type
+        sql: |
+          SELECT type, COUNT(*) as count
+          FROM feeds
+          WHERE type IS NOT NULL AND type != ''
+          GROUP BY type
+          ORDER BY count DESC
+
+      feeds_tags:
+        title: Feed Tag Frequency
+        sql: |
+          SELECT m.name as tag, COUNT(*) as count
+          FROM feeds f, json_each(f.tags) je
+          JOIN meta m ON m.id = je.value
+          GROUP BY m.name
+          ORDER BY count DESC
+
+      favorites_by_collection:
+        title: Favorites by Collection
+        description: Count of favorited records per collection
+        sql: |
+          SELECT 'articles' as collection, COUNT(*) as count FROM articles WHERE favorite = 1
+          UNION ALL SELECT 'podcasts', COUNT(*) FROM podcasts WHERE favorite = 1
+          UNION ALL SELECT 'videos', COUNT(*) FROM videos WHERE favorite = 1
+          UNION ALL SELECT 'books', COUNT(*) FROM books WHERE favorite = 1
+          UNION ALL SELECT 'games', COUNT(*) FROM games WHERE favorite = 1
+          UNION ALL SELECT 'movies', COUNT(*) FROM movies WHERE favorite = 1
+          UNION ALL SELECT 'shows', COUNT(*) FROM shows WHERE favorite = 1
+          ORDER BY count DESC
+
+      collection_totals:
+        title: Collection Totals
+        description: Record count per collection
+        sql: |
+          SELECT 'articles' as collection, COUNT(*) as count FROM articles
+          UNION ALL SELECT 'podcasts', COUNT(*) FROM podcasts
+          UNION ALL SELECT 'videos', COUNT(*) FROM videos
+          UNION ALL SELECT 'books', COUNT(*) FROM books
+          UNION ALL SELECT 'cds', COUNT(*) FROM cds
+          UNION ALL SELECT 'games', COUNT(*) FROM games
+          UNION ALL SELECT 'movies', COUNT(*) FROM movies
+          UNION ALL SELECT 'shows', COUNT(*) FROM shows
+          UNION ALL SELECT 'vinyls', COUNT(*) FROM vinyls
+          UNION ALL SELECT 'github', COUNT(*) FROM github
+          UNION ALL SELECT 'feeds', COUNT(*) FROM feeds
+          ORDER BY count DESC
+
+      all_media_by_year:
+        title: All Media by Year
+        description: Combined count across all media types per year
+        sql: |
+          SELECT year, type, COUNT(*) as count FROM (
+            SELECT year, 'articles' as type FROM articles WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'podcasts' FROM podcasts WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'videos' FROM videos WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'books' FROM books WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'cds' FROM cds WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'games' FROM games WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'movies' FROM movies WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'shows' FROM shows WHERE year IS NOT NULL AND year != 0
+            UNION ALL SELECT year, 'vinyls' FROM vinyls WHERE year IS NOT NULL AND year != 0
+          )
+          GROUP BY year, type
+          ORDER BY year DESC, type
