@@ -34,6 +34,7 @@ func doRequest(method, url string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; RivendellLinkChecker/1.0)")
 
 	resp, err := client.Do(req)
 	if err != nil {
