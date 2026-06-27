@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/fourjuaneight/rivendell/helpers"
+	"github.com/fourjuaneight/rivendell/linkcheck"
 	_ "github.com/fourjuaneight/rivendell/migrations"
 	"github.com/fourjuaneight/rivendell/utils"
 
@@ -552,6 +553,14 @@ func main() {
 		}
 
 		return nil
+	})
+
+	app.Cron().MustAdd("link_check", "0 3 * * *", func() {
+		for _, name := range []string{"articles", "podcasts", "videos"} {
+			if err := linkcheck.CheckCollection(app, name); err != nil {
+				log.Printf("[link_check][%s]: %v", name, err)
+			}
+		}
 	})
 
 	if err := app.Start(); err != nil {
