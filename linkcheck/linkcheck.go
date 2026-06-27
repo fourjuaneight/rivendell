@@ -1,11 +1,17 @@
 package linkcheck
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"sync"
 	"time"
+
+	"github.com/pocketbase/pocketbase/core"
 )
 
 const checkTimeout = 10 * time.Second
+const workerLimit = 5
 
 // isDeadStatus reports whether an HTTP status code indicates a dead link.
 // 401/403/429 are treated as alive — anti-bot walls and rate-limits are not
@@ -62,4 +68,42 @@ func CheckURL(url string) bool {
 		}
 	}
 	return !isDeadStatus(status)
+}
+
+// CheckCollection checks the url field of every non-dead record in
+// collectionName and flips dead=true on records whose link no longer
+// resolves. A single record's check or save failure is logged and skipped —
+// it never aborts the rest of the collection.
+func CheckCollection(app core.App, collectionName string) error {
+	records, err := app.FindRecordsByFilter(collectionName, "dead = false", "", 0, 0)
+	if err != nil {
+		return fmt.Errorf("[CheckCollection][%s]: %w", collectionName, err)
+	}
+
+	sem := make(chan struct{}, workerLimit)
+	var wg sync.WaitGroup
+
+	for _, r := range records {
+		record := r
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			url := record.GetString("url")
+			if url == "" || CheckURL(url) {
+				return
+			}
+
+			record.Set("dead", true)
+			if err := app.Save(record); err != nil {
+				log.Printf("[CheckCollection][%s][save %s]: %v", collectionName, record.Id, err)
+			}
+		}()
+	}
+
+	wg.Wait()
+	return nil
 }
