@@ -4,3 +4,5 @@ rivendell
 .env
 serve.json
 serve-datasette.json
+chrome/
+*.log
