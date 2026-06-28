@@ -2,9 +2,9 @@ package linkcheck
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -74,13 +74,16 @@ func CheckURL(url string) bool {
 // CheckCollection checks the url field of every non-dead record in
 // collectionName and flips dead=true on records whose link no longer
 // resolves. A single record's check or save failure is logged and skipped —
-// it never aborts the rest of the collection.
+// it never aborts the rest of the collection. Failures and dead-flips are
+// logged via app.Logger() so they're visible in PocketBase's admin Logs panel.
 func CheckCollection(app core.App, collectionName string) error {
 	records, err := app.FindRecordsByFilter(collectionName, "dead = false", "", 0, 0)
 	if err != nil {
+		app.Logger().Error("link_check query failed", "collection", collectionName, "error", err.Error())
 		return fmt.Errorf("[CheckCollection][%s]: %w", collectionName, err)
 	}
 
+	var checked, flipped atomic.Int64
 	sem := make(chan struct{}, workerLimit)
 	var wg sync.WaitGroup
 
@@ -93,6 +96,8 @@ func CheckCollection(app core.App, collectionName string) error {
 			defer wg.Done()
 			defer func() { <-sem }()
 
+			checked.Add(1)
+
 			url := record.GetString("url")
 			if url == "" || CheckURL(url) {
 				return
@@ -100,11 +105,16 @@ func CheckCollection(app core.App, collectionName string) error {
 
 			record.Set("dead", true)
 			if err := app.Save(record); err != nil {
-				log.Printf("[CheckCollection][%s][save %s]: %v", collectionName, record.Id, err)
+				app.Logger().Error("link_check save failed", "collection", collectionName, "record_id", record.Id, "error", err.Error())
+				return
 			}
+
+			flipped.Add(1)
+			app.Logger().Info("link_check marked dead", "collection", collectionName, "record_id", record.Id, "url", url)
 		}()
 	}
 
 	wg.Wait()
+	app.Logger().Info("link_check collection done", "collection", collectionName, "checked", checked.Load(), "flipped", flipped.Load())
 	return nil
 }
