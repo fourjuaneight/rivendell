@@ -556,10 +556,9 @@ func main() {
 	})
 
 	app.Cron().MustAdd("link_check", "0 3 * * *", func() {
+		app.Logger().Info("link_check started")
 		for _, name := range []string{"articles", "podcasts", "videos"} {
-			if err := linkcheck.CheckCollection(app, name); err != nil {
-				log.Printf("[link_check][%s]: %v", name, err)
-			}
+			linkcheck.CheckCollection(app, name)
 		}
 	})
 
