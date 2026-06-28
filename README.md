@@ -7,6 +7,7 @@ Personal bookmarking, media collection, and archiving database powered by [Pocke
 - [SCHEMA.md](docs/SCHEMA.md) — collection definitions, field types, and constraints
 - [API.md](docs/API.md) — how to create and query records; which fields are manual vs. auto-filled
 - [MIGRATIONS.md](docs/MIGRATIONS.md) — how schema migrations work and how to write new ones
+- [CRON.md](docs/CRON.md) — how scheduled jobs work, existing jobs, and how to add a new one
 - [TESTING.md](docs/TESTING.md) — what's tested, how to run tests, and bugs found during testing
 - [DATASETTE.md](docs/DATASETTE.md) — read-only analytics layer: dashboards, canned queries, snapshot sync, Tailscale URL
 
