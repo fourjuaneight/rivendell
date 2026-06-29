@@ -26,6 +26,11 @@ func TestFileNameFmt(t *testing.T) {
 		{"multiple spaces", "A  B", "A__B"},
 		{"ellipsis separator", "A… B", "A_B"},
 		{"pipe normalized to dash", "A|B", "A-B"},
+		{"smart quotes stripped", "‘hello’", "hello"},
+		{"period space becomes dash", "Part 1. Part 2", "Part_1-Part_2"},
+		{"comma space becomes dash", "Title, Subtitle", "Title-Subtitle"},
+		{"combined transforms", "Hello — World! 🎉", "Hello-World"},
+		{"unicode non-spacing marks stripped", "caf́e", "cafe"},
 	}
 
 	for _, tt := range tests {
@@ -55,6 +60,28 @@ func TestToCapitalized(t *testing.T) {
 			got := ToCapitalized(tt.input)
 			if got != tt.want {
 				t.Errorf("ToCapitalized(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConvertEmoji(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"party popper", "🎉", "U+1F389"},
+		{"confetti ball", "🎊", "U+1F38A"},
+		{"empty string", "", ""},
+		{"non-emoji char", "A", "U+41"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ConvertEmoji(tt.input)
+			if got != tt.want {
+				t.Errorf("ConvertEmoji(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -94,6 +121,7 @@ func TestGetFileType(t *testing.T) {
 		{"comics", "https://example.com/cover.png", "png", "image/png"},
 		{"comics", "https://example.com/cover.jpg", "jpg", "image/jpg"},
 		{"comics", "https://example.com/cover.webp", "webp", "image/webp"},
+		{"unknown", "", "", ""},
 	}
 
 	for _, tt := range tests {

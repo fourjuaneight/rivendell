@@ -68,17 +68,18 @@ func TestSubDays(t *testing.T) {
 	base := time.Date(2024, time.March, 15, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
+		name    string
 		days    int
 		wantDay int
 	}{
-		{0, 15},
-		{1, 14},
-		{7, 8},
-		{15, 29}, // wraps to Feb 29 (2024 is leap year)
+		{"zero days unchanged", 0, 15},
+		{"subtract one day", 1, 14},
+		{"subtract one week", 7, 8},
+		{"month boundary leap year", 15, 29},
 	}
 
 	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got := SubDays(base, tt.days)
 			if got.Day() != tt.wantDay {
 				t.Errorf("SubDays(base, %d).Day() = %d, want %d", tt.days, got.Day(), tt.wantDay)
@@ -91,18 +92,19 @@ func TestSubHours(t *testing.T) {
 	base := time.Date(2024, time.March, 15, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
+		name     string
 		hours    int
 		wantHour int
 		wantDay  int
 	}{
-		{0, 12, 15},
-		{3, 9, 15},
-		{12, 0, 15},
-		{13, 23, 14}, // wraps to previous day
+		{"zero hours unchanged", 0, 12, 15},
+		{"subtract mid-day", 3, 9, 15},
+		{"subtract to midnight", 12, 0, 15},
+		{"day rollover", 13, 23, 14},
 	}
 
 	for _, tt := range tests {
-		t.Run("", func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			got := SubHours(base, tt.hours)
 			if got.Hour() != tt.wantHour {
 				t.Errorf("SubHours(base, %d).Hour() = %d, want %d", tt.hours, got.Hour(), tt.wantHour)

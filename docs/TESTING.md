@@ -11,7 +11,7 @@ go test ./...
 Run with verbose output:
 
 ```sh
-go test ./utils/... ./datetime/... ./helpers/... -v
+go test ./utils/... ./datetime/... ./helpers/... ./linkcheck/... -v
 ```
 
 ## Test files
@@ -22,10 +22,11 @@ Tests string transformation and file type utilities.
 
 | Function | Cases | What's verified |
 |----------|-------|-----------------|
-| `FileNameFmt` | 17 | Spaces → underscores; separators (` - `, ` :: `, ` — `, ` : `) → dashes; `&` → `_and_`; trailing `.`/`?`/`!` stripped; emojis removed; special chars stripped; pipes normalized |
+| `FileNameFmt` | 22 | Spaces → underscores; separators (` - `, ` :: `, ` — `, ` : `) → dashes; `&` → `_and_`; trailing `.`/`?`/`!` stripped; emojis removed; special chars stripped; pipes normalized; smart quotes stripped; period-space/comma-space → dash; combined transforms; unicode non-spacing marks stripped |
 | `ToCapitalized` | 5 | Lowercase → title case; already-capitalized passthrough; empty string |
+| `ConvertEmoji` | 4 | Single emoji → `U+XXXX` code point; empty string → empty; non-emoji char |
 | `EmojiUnicode` | 3 | Emoji → `U+XXXX` format; non-emoji passthrough; multiple emoji |
-| `GetFileType` | 6 | `articles` → `md`/`text/markdown`; `podcasts` → `mp3`; `videos` → `mp4`; `comics` with image URL → correct extension and MIME type |
+| `GetFileType` | 7 | `articles` → `md`/`text/markdown`; `podcasts` → `mp3`; `videos` → `mp4`; `comics` with image URL → correct extension and MIME type; unknown type → zero value |
 
 ### `datetime/datetime_test.go`
 
@@ -46,11 +47,22 @@ Tests URL parsing functions used to extract IDs and metadata before API calls. A
 |----------|-------|-----------------|
 | `parseGHURL` | 5 | Standard `github.com/owner/repo`; URL with trailing slash; URL with path suffix; non-GitHub URL errors; empty string errors |
 | `parseMTGURL` | 3 | Valid Scryfall oEmbed URL extracts card UUID; URL without `/oembed` path errors; empty string errors |
-| `parseMDURL` | 2 | MangaDex title URL extracts chapter UUID; URL with slug after ID |
-| `parseTMDBURL` | 3 | Movie URL extracts ID and `movie` category; TV URL extracts ID and `tv` category; URL without slug |
-| `cleanYTURL` | 3 | Short `youtu.be` URL; full `youtube.com/watch?v=` URL; `youtube.com` without `www` — all extract same video ID |
+| `parseMDURL` | 3 | MangaDex title URL extracts chapter UUID; URL with slug after ID; non-matching URL returns input |
+| `parseTMDBURL` | 4 | Movie URL extracts ID and `movie` category; TV URL extracts ID and `tv` category; URL without slug; non-matching URL returns raw input |
+| `cleanYTURL` | 4 | Short `youtu.be` URL; full `youtube.com/watch?v=` URL; `youtube.com` without `www`; `feature=share` param stripped — all extract same video ID |
 | `escapeText` | 4 | Newlines escaped to `\n` literals; no-newline passthrough; multiple newlines; empty string |
 | `parseDiscogsTitle` | 5 | Standard `Artist - Album` format; artist with dash in name; album with dash (preserves remainder after first separator); no separator returns empty artist and full string as album; empty string |
+
+### `linkcheck/linkcheck_test.go`
+
+Tests the HTTP status code classification logic used by the `link_check` cron job.
+
+| Function | Cases | What's verified |
+|----------|-------|-----------------|
+| `isDeadStatus` | 11 | 2xx/3xx → alive; 401/403/429 → alive (anti-bot/rate-limit, not real death); 400/404/410/5xx → dead |
+| `CheckURL` | 5 | Live HTTP servers: 200 alive, 404/500 dead, 403/429 alive |
+| `CheckURL` (HEAD fallback) | 1 | Falls back to GET when server returns 405 on HEAD |
+| `CheckURL` (unreachable) | 1 | Returns false for connection-refused host |
 
 ## Bugs found during testing
 

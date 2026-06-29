@@ -116,16 +116,22 @@ func TestParseMDURL(t *testing.T) {
 			url:    "https://mangadex.org/title/a96676be-9e5d-4d1f-88b0-d48ead35c978/berserk",
 			wantID: "a96676be-9e5d-4d1f-88b0-d48ead35c978",
 		},
+		{
+			name:    "non-mangadex URL returns full string",
+			url:     "https://example.com/foo",
+			wantID:  "https://example.com/foo",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := parseMDURL(tt.url)
-			if err != nil {
-				t.Errorf("parseMDURL(%q) unexpected error: %v", tt.url, err)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseMDURL(%q) error = %v, wantErr %v", tt.url, err, tt.wantErr)
 				return
 			}
-			if got != tt.wantID {
+			if !tt.wantErr && got != tt.wantID {
 				t.Errorf("parseMDURL(%q) = %q, want %q", tt.url, got, tt.wantID)
 			}
 		})
@@ -157,6 +163,12 @@ func TestParseTMDBURL(t *testing.T) {
 			url:          "https://www.themoviedb.org/movie/550",
 			wantID:       "550",
 			wantCategory: "movie",
+		},
+		{
+			name:         "non-tmdb URL returns raw string",
+			url:          "https://example.com/foo",
+			wantID:       "https://example.com/foo",
+			wantCategory: "https://example.com/foo",
 		},
 	}
 
@@ -198,6 +210,11 @@ func TestCleanYTURL(t *testing.T) {
 		{
 			name:   "youtube.com without www",
 			url:    "https://youtube.com/watch?v=dQw4w9WgXcQ",
+			wantID: "dQw4w9WgXcQ",
+		},
+		{
+			name:   "youtu.be with feature share param",
+			url:    "https://youtu.be/dQw4w9WgXcQ&feature=share",
 			wantID: "dQw4w9WgXcQ",
 		},
 	}
