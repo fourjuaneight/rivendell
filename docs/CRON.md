@@ -24,15 +24,19 @@ app.Cron().MustAdd("link_check", "0 3 * * *", func() {
 
 Use `app.Logger()` (PocketBase's structured `slog.Logger`), not `log.Printf` — `app.Logger()` persists to the `_logs` table and shows up in the admin UI's Logs panel (`/_/` → Logs). Plain `log.Printf` only goes to stdout, which means checking on a job means SSHing into the container.
 
-Log levels used by `linkcheck`:
-- `Info` — normal lifecycle events (job started, a record's `dead` flag flipped, a collection's run summary)
-- `Error` — failures (a DB query failed, a record save failed)
+This applies **app-wide** — cron jobs, record create hooks (enrichers/preparers), and the archive pipeline all use `app.Logger()` with structured key-value attrs. Every log line includes at minimum `collection` and a record identifier (`title`, `album`, `name`, `url`, or `link` depending on collection) so failures can be pinpointed to a specific record.
+
+Log levels:
+- `Info` — lifecycle events (record create started/completed, enrich started/skipped, archive uploaded, link flipped dead, collection summary)
+- `Error` — failures (prepare failed, enrich failed, save failed, archive failed, SingleFile capture/upload failed)
 
 Pass structured key-value attrs, not formatted strings:
 
 ```go
 app.Logger().Info("link_check marked dead", "collection", collectionName, "record_id", record.Id, "url", url)
 app.Logger().Error("link_check save failed", "collection", collectionName, "record_id", record.Id, "error", err.Error())
+app.Logger().Info("record created", "collection", collection, "record", label, "enriched", needsSave)
+app.Logger().Error("record enrich failed", "collection", collection, "record", label, "error", err.Error())
 ```
 
 ## Existing jobs

@@ -41,7 +41,7 @@ Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 ## Relation name resolution
 
-For `genre`, `definition`, `platform`, and `status` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`, `"in_progress"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID also works. If no matching meta record is found the field is silently cleared — the record is still created.
+For `genre`, `definition`, `platform`, and `status` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`, `"in_progress"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID does **not** work — it fails to match any name and the create is rejected with an error.
 
 For `tags` fields on `articles`, `podcasts`, `videos`, `feeds`, `read_later`, and `watch_later`, pass an array of **tag name strings** (e.g. `["programming", "go"]`). The server resolves each to its `meta` record ID before saving. Passing raw IDs does **not** work — they fail to match any name and the required `tags` field is left empty, rejecting the create.
 
@@ -114,7 +114,7 @@ const record = await res.json();
 #### videos
 
 Send: `url`, `tags` (names) — optionally `comments`
-Server sets: `title`, `creator`, `url` (from YouTube), `dead = false`, `shared = false`, `favorite = false`, `archive` (video downloaded and archived to B2). Enrichment is skipped if `archive` is already set on create.
+Server sets: `title`, `creator`, `url`, `year` (from YouTube), `dead = false`, `shared = false`, `favorite = false`, `archive` (video downloaded and archived to B2). Enrichment is skipped if `archive` is already set on create.
 
 ```sh
 curl -X POST '{BASE_URL}/api/collections/videos/records' \

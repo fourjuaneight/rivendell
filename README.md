@@ -4,6 +4,7 @@ Personal bookmarking, media collection, and archiving database powered by [Pocke
 
 ## Docs
 
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — system overview, design decisions, diagrams, and implementation guide
 - [SCHEMA.md](docs/SCHEMA.md) — collection definitions, field types, and constraints
 - [API.md](docs/API.md) — how to create and query records; which fields are manual vs. auto-filled
 - [MIGRATIONS.md](docs/MIGRATIONS.md) — how schema migrations work and how to write new ones
@@ -63,6 +64,21 @@ See [SCHEMA.md](SCHEMA.md) for why this value is required.
 
 ```sh
 go mod download
+```
+
+## Source layout
+
+```
+main.go          — app init, hook wiring, cron registration, app.Start()
+enrichers.go     — record enrichment (external API calls, B2 uploads)
+preparers.go     — relation name resolution, field defaults
+schema/          — collection definitions (used by migrations)
+helpers/         — external API clients (B2, YouTube, TMDB, IGDB, Discogs, Scryfall, OpenLibrary, GitHub)
+linkcheck/       — dead-link checker (used by link_check cron job)
+utils/           — pure string/file utilities
+datetime/        — date arithmetic helpers
+migrations/      — versioned schema migration files
+datasette/       — read-only analytics layer (Dockerfile, sync, queries, dashboards)
 ```
 
 ## Local development

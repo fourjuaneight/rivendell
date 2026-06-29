@@ -57,7 +57,7 @@ Saved videos. `title`/`creator` fetched from YouTube and the video archived to B
 |------------|----------|----------|----------------------------------------|
 | `title`    | text     | no       | Fetched from YouTube on create         |
 | `creator`  | text     | no       | Fetched from YouTube on create         |
-| `year`     | number   | no       |                                        |
+| `year`     | number   | no       | Set automatically from YouTube on create |
 | `url`      | url      | yes      |                                        |
 | `archive`  | url      | no       | Set automatically on create            |
 | `tags`     | relation | yes      | → `meta`, max 5                        |
