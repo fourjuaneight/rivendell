@@ -181,6 +181,8 @@ rivendell/
 │   └── uploadToB2.go    # Backblaze B2 auth + upload
 ├── linkcheck/
 │   └── linkcheck.go     # Dead-link detection (HEAD/GET, retry, worker pool)
+├── backup/
+│   └── backup.go        # Collection → JSON export to B2 (backup cron job)
 ├── utils/
 │   ├── cmd.go           # Shell command executor
 │   ├── deleteFiles.go   # File cleanup
@@ -234,6 +236,9 @@ The client gets back the fully enriched record in the response. Enrichment is **
 | Job ID | Schedule | What it does |
 |--------|----------|--------------|
 | `link_check` | Daily 3am | HEAD-check every non-dead URL in articles/podcasts/videos. Flip `dead=true` on failures. Worker pool of 5, one retry on network error. |
+| `backup` | Mon/Wed/Fri 4am | Export every non-system, non-auth collection to `Backups/<collection>/<date>.json` on B2. Strips PB meta fields, resolves relation IDs to meta names. Sequential; one collection's failure is logged and skipped. |
+
+See [CRON.md](CRON.md) for the full per-job detail and the convention for adding new jobs.
 
 ## Archiving pipeline
 

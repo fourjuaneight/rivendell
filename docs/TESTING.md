@@ -11,7 +11,7 @@ go test ./...
 Run with verbose output:
 
 ```sh
-go test ./utils/... ./datetime/... ./helpers/... ./linkcheck/... -v
+go test ./utils/... ./datetime/... ./helpers/... ./linkcheck/... ./backup/... -v
 ```
 
 ## Test files
@@ -63,6 +63,14 @@ Tests the HTTP status code classification logic used by the `link_check` cron jo
 | `CheckURL` | 5 | Live HTTP servers: 200 alive, 404/500 dead, 403/429 alive |
 | `CheckURL` (HEAD fallback) | 1 | Falls back to GET when server returns 405 on HEAD |
 | `CheckURL` (unreachable) | 1 | Returns false for connection-refused host |
+
+### `backup/backup_test.go`
+
+Tests the pure record-transformation logic used by the `backup` cron job. The DB/B2 I/O functions (`buildMetaNames`, `backupCollection`, `BackupAll`) are not unit-tested, per convention.
+
+| Function | Cases | What's verified |
+|----------|-------|-----------------|
+| `stripAndResolve` | 5 | PB meta keys (`id`/`created`/`updated`/`collectionId`/`collectionName`/`expand`) stripped; single relation ID → name; multi relation `[]ID` → `[]name`; unresolved (orphan) ID kept as-is; non-relation fields untouched |
 
 ## Bugs found during testing
 

@@ -75,6 +75,7 @@ preparers.go     — relation name resolution, field defaults
 schema/          — collection definitions (used by migrations)
 helpers/         — external API clients (B2, YouTube, TMDB, IGDB, Discogs, Scryfall, OpenLibrary, GitHub)
 linkcheck/       — dead-link checker (used by link_check cron job)
+backup/          — collection → JSON export to B2 (used by backup cron job)
 utils/           — pure string/file utilities
 datetime/        — date arithmetic helpers
 migrations/      — versioned schema migration files

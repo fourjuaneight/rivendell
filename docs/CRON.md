@@ -52,6 +52,18 @@ Checks the `url` field on every non-`dead` record in `articles`, `podcasts`, and
 - **Logging:** job start, per-collection query failure, per-record save failure, per-record dead-flip, per-collection summary (`checked`/`flipped` counts) — see `linkcheck.CheckCollection`.
 - **Known limitation:** the concurrency cap bounds *total* in-flight requests, not *per-host* requests — if several records share a host, up to 5 can hit it at once. Mitigated by the daily schedule rather than per-host throttling; acceptable for a personal-scale collection.
 
+### `backup` — Mon/Wed/Fri at 4am (`0 4 * * 1,3,5`)
+
+Exports every non-system, non-auth collection to a pretty-printed JSON file on Backblaze B2 at `Backups/<collection>/<YYYY-MM-DD>.json` — one dated file per collection per run, never overwritten. Implementation: `backup/backup.go`.
+
+- **Scope:** enumerated dynamically via `app.FindAllCollections()`; skips `collection.System` (e.g. `_superusers`, `_logs`) **and** `collection.IsAuth()` (e.g. `users`) — auth records can carry credentials/email and the files land off-site on B2. Keeps the ~16 data collections and `meta`. Collections added later are picked up automatically.
+- **Per record:** `record.PublicExport()` then strip PB meta keys (`id`, plus a defensive `created`/`updated`/`collectionId`/`collectionName`/`expand` superset), and resolve relation fields from `meta` record IDs to their names (single relation → string, multi → array). A meta ID with no match is kept as-is. An empty collection still writes `[]`.
+- **Format:** `json.MarshalIndent` (2-space) — diffable across dated snapshots.
+- **Concurrency:** sequential across collections (~16, each one fetch + marshal + one B2 upload, off-peak).
+- **Failure isolation:** a `buildMetaNames` or `FindAllCollections` failure aborts the whole run (every collection needs the meta map); a single collection's failure is logged and skipped (`continue`), never aborting the rest.
+- **Logging:** `backup started`, per-collection `collection backed up` (`record_count`), per-collection failure, `backup done` (`backed_up`/`failed`) — see `backup.BackupAll`.
+- **Restore:** re-POST the JSON through the create API — relations are stored as names precisely so a restore matches the API's input format. (Restore is manual; no automated tooling yet.)
+
 ## Adding a new cron job
 
 1. Put the job's logic in its own package (see `linkcheck/` as the template) — keep `main.go` to wiring, not business logic.
