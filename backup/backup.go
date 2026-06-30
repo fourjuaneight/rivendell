@@ -140,7 +140,10 @@ func BackupAll(app core.App) error {
 
 	var backedUp, failed int
 	for _, collection := range collections {
-		if collection.System {
+		// Skip system collections (e.g. _superusers, _logs) and auth
+		// collections (e.g. users): auth records can carry credentials/email,
+		// and backups land off-site on B2, so they are deliberately excluded.
+		if collection.System || collection.IsAuth() {
 			continue
 		}
 		if err := backupCollection(app, collection, metaNames, date); err != nil {
