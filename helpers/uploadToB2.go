@@ -72,6 +72,7 @@ type B2UploadTokens struct {
 // pathMap maps collection names to their B2 folder names.
 var pathMap = map[string]string{
 	"articles": "Articles",
+	"backups":  "Backups",
 	"books":    "Books",
 	"cds":      "CDs",
 	"games":    "Games",

@@ -6,6 +6,15 @@
 // point (registered in main.go).
 package backup
 
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/fourjuaneight/rivendell/helpers"
+
+	"github.com/pocketbase/pocketbase/core"
+)
+
 // metaKeys are PocketBase-managed fields stripped from every backed-up record.
 // Only "id" is actually present in this app's schema today; the rest are a
 // defensive superset so the backup stays correct if created/updated or the
@@ -45,4 +54,63 @@ func stripAndResolve(fields map[string]any, relFields []string, metaNames map[st
 	}
 
 	return fields
+}
+
+// buildMetaNames queries every meta record once and returns a map of record ID
+// to name, used to resolve relation fields during backup.
+func buildMetaNames(app core.App) (map[string]string, error) {
+	records, err := app.FindAllRecords("meta")
+	if err != nil {
+		return nil, fmt.Errorf("[buildMetaNames]: %w", err)
+	}
+
+	names := make(map[string]string, len(records))
+	for _, r := range records {
+		names[r.Id] = r.GetString("name")
+	}
+	return names, nil
+}
+
+// relationFieldNames returns the names of every relation field in a collection.
+func relationFieldNames(collection *core.Collection) []string {
+	var names []string
+	for _, f := range collection.Fields {
+		if _, ok := f.(*core.RelationField); ok {
+			names = append(names, f.GetName())
+		}
+	}
+	return names
+}
+
+// backupCollection fetches all records in a collection, strips meta fields,
+// resolves relations to names, and uploads a pretty-printed JSON array to B2 at
+// Backups/<collection>/<date>.json. An empty collection still uploads "[]".
+func backupCollection(app core.App, collection *core.Collection, metaNames map[string]string, date string) error {
+	records, err := app.FindAllRecords(collection.Name)
+	if err != nil {
+		return fmt.Errorf("[backupCollection][%s]: %w", collection.Name, err)
+	}
+
+	relFields := relationFieldNames(collection)
+
+	rows := make([]map[string]any, 0, len(records))
+	for _, r := range records {
+		rows = append(rows, stripAndResolve(r.PublicExport(), relFields, metaNames))
+	}
+
+	data, err := json.MarshalIndent(rows, "", "  ")
+	if err != nil {
+		return fmt.Errorf("[backupCollection][%s]: %w", collection.Name, err)
+	}
+
+	filename := fmt.Sprintf("%s/%s.json", collection.Name, date)
+	if _, err := helpers.UploadToB2(data, "backups", filename, "application/json"); err != nil {
+		return fmt.Errorf("[backupCollection][%s]: %w", collection.Name, err)
+	}
+
+	app.Logger().Info("collection backed up",
+		"collection", collection.Name,
+		"record_count", len(records),
+	)
+	return nil
 }
