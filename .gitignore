@@ -6,3 +6,5 @@ serve.json
 serve-datasette.json
 chrome/
 *.log
+.claude
+.superpowers
