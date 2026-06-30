@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/fourjuaneight/rivendell/backup"
 	"github.com/fourjuaneight/rivendell/linkcheck"
 	_ "github.com/fourjuaneight/rivendell/migrations"
 
@@ -123,6 +124,10 @@ func main() {
 		for _, name := range []string{"articles", "podcasts", "videos"} {
 			linkcheck.CheckCollection(app, name)
 		}
+	})
+
+	app.Cron().MustAdd("backup", "0 4 * * 1,3,5", func() {
+		backup.BackupAll(app)
 	})
 
 	if err := app.Start(); err != nil {

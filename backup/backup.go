@@ -9,6 +9,7 @@ package backup
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/fourjuaneight/rivendell/helpers"
 
@@ -112,5 +113,47 @@ func backupCollection(app core.App, collection *core.Collection, metaNames map[s
 		"collection", collection.Name,
 		"record_count", len(records),
 	)
+	return nil
+}
+
+// BackupAll is the cron entry point. It exports every non-system collection to
+// B2 as a dated JSON file, sequentially. One collection's failure is logged and
+// skipped — it never aborts the rest of the run. A failure to build the meta
+// map or list collections aborts the whole run, since every collection needs
+// the meta map to resolve relations.
+func BackupAll(app core.App) error {
+	date := time.Now().Format("2006-01-02")
+
+	metaNames, err := buildMetaNames(app)
+	if err != nil {
+		app.Logger().Error("backup aborted, meta lookup failed", "error", err.Error())
+		return err
+	}
+
+	collections, err := app.FindAllCollections()
+	if err != nil {
+		app.Logger().Error("backup aborted, collection list failed", "error", err.Error())
+		return err
+	}
+
+	app.Logger().Info("backup started", "date", date, "collection_count", len(collections))
+
+	var backedUp, failed int
+	for _, collection := range collections {
+		if collection.System {
+			continue
+		}
+		if err := backupCollection(app, collection, metaNames, date); err != nil {
+			app.Logger().Error("collection backup failed",
+				"collection", collection.Name,
+				"error", err.Error(),
+			)
+			failed++
+			continue
+		}
+		backedUp++
+	}
+
+	app.Logger().Info("backup done", "backed_up", backedUp, "failed", failed)
 	return nil
 }
