@@ -34,6 +34,8 @@ services:
   app:
     container_name: app
     restart: unless-stopped
+    # Give PocketBase time to checkpoint the WAL and close SQLite cleanly on stop.
+    stop_grace_period: 30s
     build:
       context: .
       dockerfile: Dockerfile
@@ -43,7 +45,7 @@ services:
           - rivendell-app
     volumes:
       - ./.env:/app/.env:ro
-      - ./pb_data:/app/pb_data
+      - pb_data:/app/pb_data
     env_file: .env
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/api/health"]
@@ -64,7 +66,7 @@ services:
     networks:
       - internal
     volumes:
-      - ./pb_data:/data/pb_data:ro
+      - pb_data:/data/pb_data:ro
       - datasette-data:/data
     ports:
       - "127.0.0.1:8001:8001"
@@ -119,6 +121,7 @@ services:
         condition: service_healthy
 
 volumes:
+  pb_data:
   tailscale-state:
   tailscale-sock:
   tailscale-datasette-state:
