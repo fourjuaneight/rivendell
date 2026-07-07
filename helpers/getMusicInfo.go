@@ -53,8 +53,7 @@ func discogsSearch(token string, params neturl.Values) ([]discogsSearchResult, e
 	req.Header.Set("Authorization", fmt.Sprintf("Discogs token=%s", token))
 	req.Header.Set("User-Agent", "Rivendell/1.0")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("[discogsSearch][client.Do]: %w", err)
 	}

@@ -231,6 +231,8 @@ Response returned to client
 
 The client gets back the fully enriched record in the response. Enrichment is **synchronous** — the request blocks until all API calls and uploads complete. This is acceptable for a single-user personal system.
 
+Because the request blocks on external I/O, all outbound HTTP calls use shared clients with timeouts (`helpers/http.go`): `HTTPClient` (30s) for metadata/API lookups and `MediaClient` (300s) for large transfers (media downloads, B2 uploads). A hung upstream host therefore fails the request on a deadline rather than stalling it indefinitely. The one exception is TMDB's `tmdbClient`, which keeps its own timeout plus gzip-EOF handling.
+
 ## Cron jobs
 
 | Job ID | Schedule | What it does |

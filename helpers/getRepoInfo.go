@@ -93,8 +93,7 @@ func GetRepoInfo(url string) (CleanRepo, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return CleanRepo{}, fmt.Errorf("[GetRepoInfo][client.Do]: %w", err)
 	}

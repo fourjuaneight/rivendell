@@ -84,8 +84,7 @@ func getIGDBToken() (string, error) {
 		return "", fmt.Errorf("[getIGDBToken][http.NewRequest]: %w", err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("[getIGDBToken][client.Do]: %w", err)
 	}
@@ -148,8 +147,7 @@ limit 1;
 	req.Header.Set("Client-ID", clientID)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return CleanGame{}, fmt.Errorf("[GetGameInfo][client.Do]: %w", err)
 	}

@@ -57,8 +57,7 @@ func GetBookInfo(isbn string) (CleanBook, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return CleanBook{}, fmt.Errorf("[GetBookInfo][client.Do]: %w", err)
 	}

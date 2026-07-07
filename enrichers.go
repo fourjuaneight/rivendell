@@ -87,7 +87,7 @@ func archive(app core.App, name string, url string, typeName string, creator str
 }
 
 func downloadCover(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	resp, err := helpers.MediaClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("[downloadCover][http.Get]: %w", err)
 	}

@@ -24,7 +24,7 @@ import (
 // Get Markdown version of article from url.
 func GetArticle(name string, urlString string) ([]byte, error) {
 	// get html from url
-	resp, err := http.Get(urlString)
+	resp, err := HTTPClient.Get(urlString)
 	if err != nil {
 		return nil, fmt.Errorf("[GetArticle][http.Get] %w", err)
 	}
@@ -119,7 +119,7 @@ func GetArticle(name string, urlString string) ([]byte, error) {
 
 // Get media file from source URL.
 func GetMedia(name string, url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	resp, err := MediaClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("[GetMedia][http.Get]: %w", err)
 	}

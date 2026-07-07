@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -98,7 +97,7 @@ func GetYTInfo(url string) (CleanYT, error) {
 
 	urls := cleanYTURL(url)
 
-	resp, err := http.Get(fmt.Sprintf("%s&key=%s", urls.Endpoint, key))
+	resp, err := HTTPClient.Get(fmt.Sprintf("%s&key=%s", urls.Endpoint, key))
 	if err != nil {
 		return CleanYT{}, fmt.Errorf("[GetYTInfo][http.Get]: %w", err)
 	}

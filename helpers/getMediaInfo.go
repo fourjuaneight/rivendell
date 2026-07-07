@@ -237,8 +237,7 @@ func getDirector(category string, id string) (string, error) {
 		return "", fmt.Errorf("[getCredits][http.NewRequest]: %w", err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("[getCredits][client.Do]: %w", err)
 	}
@@ -286,8 +285,7 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][http.NewRequest]: %w", err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][client.Do]: %w", err)
 	}
