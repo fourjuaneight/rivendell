@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -14,12 +15,15 @@ func resolveTagNames(app core.App, names []string) ([]string, error) {
 	}
 
 	parts := make([]string, len(names))
+	params := dbx.Params{}
 	for i, name := range names {
-		parts[i] = fmt.Sprintf(`name = "%s"`, name)
+		key := fmt.Sprintf("n%d", i)
+		parts[i] = fmt.Sprintf("name = {:%s}", key)
+		params[key] = name
 	}
 	filter := fmt.Sprintf(`(%s) && type = "tags"`, strings.Join(parts, " || "))
 
-	records, err := app.FindRecordsByFilter("meta", filter, "", 0, 0)
+	records, err := app.FindRecordsByFilter("meta", filter, "", 0, 0, params)
 	if err != nil {
 		return nil, fmt.Errorf("[resolveTagNames]: %w", err)
 	}
@@ -33,8 +37,8 @@ func resolveTagNames(app core.App, names []string) ([]string, error) {
 
 // resolveMetaName looks up a single meta record by name and type, returning its ID.
 func resolveMetaName(app core.App, name, metaType string) (string, error) {
-	filter := fmt.Sprintf(`name = "%s" && type = "%s"`, name, metaType)
-	record, err := app.FindFirstRecordByFilter("meta", filter)
+	filter := "name = {:name} && type = {:type}"
+	record, err := app.FindFirstRecordByFilter("meta", filter, dbx.Params{"name": name, "type": metaType})
 	if err != nil {
 		return "", fmt.Errorf("[resolveMetaName] %q (%s): %w", name, metaType, err)
 	}
