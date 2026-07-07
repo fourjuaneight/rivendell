@@ -46,8 +46,6 @@ Tests URL parsing functions used to extract IDs and metadata before API calls. A
 | Function | Cases | What's verified |
 |----------|-------|-----------------|
 | `parseGHURL` | 5 | Standard `github.com/owner/repo`; URL with trailing slash; URL with path suffix; non-GitHub URL errors; empty string errors |
-| `parseMTGURL` | 3 | Valid Scryfall oEmbed URL extracts card UUID; URL without `/oembed` path errors; empty string errors |
-| `parseMDURL` | 3 | MangaDex title URL extracts chapter UUID; URL with slug after ID; non-matching URL returns input |
 | `parseTMDBURL` | 4 | Movie URL extracts ID and `movie` category; TV URL extracts ID and `tv` category; URL without slug; non-matching URL returns raw input |
 | `cleanYTURL` | 4 | Short `youtu.be` URL; full `youtube.com/watch?v=` URL; `youtube.com` without `www`; `feature=share` param stripped — all extract same video ID |
 | `escapeText` | 4 | Newlines escaped to `\n` literals; no-newline passthrough; multiple newlines; empty string |

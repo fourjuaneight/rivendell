@@ -6,11 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
-
-	"golang.org/x/net/html"
 )
 
 type Preview struct {
@@ -173,38 +170,7 @@ type MTGItem struct {
 	Back            *string  `json:"back"`
 }
 
-type ScryfallSearch struct {
-	HasMore    bool               `json:"has_more"`
-	Object     string             `json:"object"`
-	Data       []ScryfallCardData `json:"data"`
-	TotalCards int                `json:"total_cards"`
-}
-
-type ScryfallError struct {
-	Object   string   `json:"object"`
-	Code     string   `json:"code"`
-	Status   int      `json:"status"`
-	Warnings []string `json:"warnings,omitempty"`
-	Details  string   `json:"details"`
-}
-
 type ScryfallCardSelection map[string]MTGItem
-
-type CleanMTG struct {
-	Name            string
-	Colors          *[]string
-	Type            string
-	Set             string
-	SetName         string
-	OracleText      *string
-	FlavorText      *string
-	Rarity          string
-	CollectorNumber int
-	Artist          string
-	ReleasedAt      string
-	Image           string
-	Back            *string
-}
 
 var magicColors = map[string]string{
 	"W": "White",
@@ -220,183 +186,8 @@ func escapeText(text string) string {
 	return strings.ReplaceAll(text, "\n", "\\n")
 }
 
-// parseMTGURL extracts the Scryfall card ID from an oEmbed URL.
-// The oEmbed URL format is: https://scryfall.com/cards/{id}/oembed
-// Returns the extracted card ID which can be used with Scryfall's /cards/:id endpoint.
-func parseMTGURL(url string) (string, error) {
-	regex, err := regexp.Compile(`cards/([a-f0-9\-]+)/oembed`)
-	if err != nil {
-		return "", fmt.Errorf("[parseMTGURL][regexp.Compile]: %w", err)
-	}
-
-	matches := regex.FindStringSubmatch(url)
-	if len(matches) == 2 {
-		return matches[1], nil
-	}
-
-	return "", fmt.Errorf("[parseMTGURL]: no matches found")
-}
-
-// getOembedURL fetches a Scryfall card page and extracts the oEmbed URL from its HTML <head>.
-// The oEmbed URL is found in a <link> tag with rel="alternate" and type="application/json+oembed".
-// This URL contains the card's Scryfall ID needed for API requests.
-func getOembedURL(url string) (string, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", fmt.Errorf("[getOembedURL]: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("[getOembedURL]: %w", err)
-	}
-
-	var f func(*html.Node) string
-	f = func(n *html.Node) string {
-		if n.Type == html.ElementNode && n.Data == "head" {
-			for c := n.FirstChild; c != nil; c = c.NextSibling {
-				if c.Type == html.ElementNode && c.Data == "link" {
-					isAlternate := false
-					isOembed := false
-					var href string
-
-					for _, a := range c.Attr {
-						if a.Key == "rel" && a.Val == "alternate" {
-							isAlternate = true
-						} else if a.Key == "type" && a.Val == "application/json+oembed" {
-							isOembed = true
-						} else if a.Key == "href" {
-							href = a.Val
-						}
-					}
-
-					if isAlternate && isOembed && href != "" {
-						return href
-					}
-				}
-			}
-		}
-
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			result := f(c)
-			if result != "" {
-				return result
-			}
-		}
-
-		return ""
-	}
-
-	return f(doc), nil
-}
-
-// mapCardData transforms a full Scryfall API card response into a simplified CleanMTG struct.
-// It handles multi-faced cards by extracting data from the card_faces array when needed,
-// converts color codes (W, U, B, R, G) to full color names, and ensures all relevant
-// card properties are properly mapped according to Scryfall's Card Object specification.
-func mapCardData(data ScryfallCardData) (CleanMTG, error) {
-	var oText, fText string
-
-	if data.OracleText != "" {
-		oText = escapeText(data.OracleText)
-	} else if len(data.CardFaces) > 0 && data.CardFaces[0].OracleText != "" {
-		oText = escapeText(data.CardFaces[0].OracleText)
-	}
-
-	if data.FlavorText != "" {
-		fText = escapeText(data.FlavorText)
-	} else if len(data.CardFaces) > 0 && data.CardFaces[0].FlavorText != "" {
-		fText = escapeText(data.CardFaces[0].FlavorText)
-	}
-
-	var colorNames []string
-	if len(data.Colors) > 0 {
-		for _, color := range data.Colors {
-			if name, ok := magicColors[color]; ok {
-				colorNames = append(colorNames, name)
-			}
-		}
-	}
-
-	var item CleanMTG
-	item.Name = data.Name
-	item.Colors = &colorNames
-	item.Type = data.TypeLine
-	item.Set = strings.ToUpper(data.Set)
-	item.SetName = data.SetName
-	item.OracleText = &oText
-	item.FlavorText = &fText
-	item.Rarity = data.Rarity
-	collectorNumber, err := strconv.Atoi(data.CollectorNumber)
-	if err != nil {
-		return CleanMTG{}, fmt.Errorf("[mapCardData][strconv.Atoi]: %w", err)
-	}
-	item.CollectorNumber = collectorNumber
-	item.Artist = data.Artist
-	item.ReleasedAt = data.ReleasedAt
-
-	if len(data.CardFaces) > 0 {
-		item.Image = data.CardFaces[0].ImageUris.Png
-	} else {
-		item.Image = data.ImageUris.Png
-	}
-
-	if len(data.CardFaces) > 1 {
-		item.Back = &data.CardFaces[1].ImageUris.Png
-	}
-
-	return item, nil
-}
-
-// GetMTGInfo retrieves Magic: The Gathering card information from a Scryfall card URL.
-// It performs the following steps:
-// 1. Fetches the card's HTML page and extracts the oEmbed URL
-// 2. Parses the Scryfall card ID from the oEmbed URL
-// 3. Calls the Scryfall API endpoint /cards/:id to get full card data
-// 4. Maps the API response to a simplified CleanMTG struct
-// Returns comprehensive card details including name, colors, type, set info, text, and images.
-func GetMTGInfo(url string) (CleanMTG, error) {
-	link, linkErr := getOembedURL(url)
-	if linkErr != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo]%w", linkErr)
-	}
-
-	id, idErr := parseMTGURL(link)
-	if idErr != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo]%w", idErr)
-	}
-
-	resp, err := http.Get(fmt.Sprintf("https://api.scryfall.com/cards/%s", id))
-	if err != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo][http.Get]: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		err = fmt.Errorf("[fetch]: %d - %s (%s)", resp.StatusCode, resp.Status, id)
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo]%w", err)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo][io.ReadAll]: %w", err)
-	}
-
-	var response ScryfallCardData
-	if err := json.Unmarshal(body, &response); err != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo][json.Unmarshal]: %w", err)
-	}
-
-	data, err := mapCardData(response)
-	if err != nil {
-		return CleanMTG{}, fmt.Errorf("[GetMTGInfo]%w", err)
-	}
-
-	return data, nil
-}
+// escapeText, magicColors, and the Scryfall response types above are shared with
+// SearchCard, the live lookup path used by the mtg enricher.
 
 // SearchCard fetches a card directly from Scryfall by set code and collector number.
 // DOCS: https://scryfall.com/docs/api/cards/collector
@@ -415,8 +206,7 @@ func SearchCard(name string, set string, number int) (ScryfallCardSelection, err
 	req.Header.Set("User-Agent", "Rivendell/1.0")
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("(SearchCard): request failed: %w", err)
 	}

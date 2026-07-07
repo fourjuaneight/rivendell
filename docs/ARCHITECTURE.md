@@ -171,9 +171,8 @@ rivendell/
 │   ├── getBookInfo.go   # OpenLibrary ISBN lookup
 │   ├── getContent.go    # Content fetcher (article/video/podcast/media)
 │   ├── getGameInfo.go   # IGDB game lookup via Twitch OAuth
-│   ├── getMangaInfo.go  # MangaDex lookup (legacy, unused by hooks)
 │   ├── getMediaInfo.go  # TMDB movie/show search + detail
-│   ├── getMTGInfo.go    # Scryfall card lookup
+│   ├── getMTGInfo.go    # Scryfall card lookup (SearchCard: by set + collector number)
 │   ├── getMusicInfo.go  # Discogs music search (CDs + vinyls)
 │   ├── getRepoInfo.go   # GitHub GraphQL repository info
 │   ├── getYTInfo.go     # YouTube Data API video metadata
