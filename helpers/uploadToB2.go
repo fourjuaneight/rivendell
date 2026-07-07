@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 )
 
 type B2AuthResp struct {
@@ -84,9 +86,42 @@ var pathMap = map[string]string{
 	"videos":   "Videos",
 }
 
-// Authorize B2 bucket for upload.
+// b2Auth caches the B2 authorization result in memory. B2 auth tokens are valid
+// for up to 24h, but UploadToB2 -> GetUploadUrl -> AuthTokens previously
+// re-authorized on every single upload (two B2 round-trips per file). The cache
+// makes AuthTokens a no-op once warm; the mutex guards concurrent refreshes.
+var (
+	b2AuthMu    sync.Mutex
+	b2AuthCache B2AuthTokens
+	b2AuthExp   time.Time
+)
+
+// b2AuthTTL is how long a cached auth token is trusted. Conservatively below
+// B2's ~24h validity so a token never expires mid-use.
+const b2AuthTTL = 12 * time.Hour
+
+// Authorize B2 bucket for upload. Returns a cached token when still valid.
 // DOCS: https://www.backblaze.com/b2/docs/b2_authorize_account.html
 func AuthTokens() (B2AuthTokens, error) {
+	b2AuthMu.Lock()
+	defer b2AuthMu.Unlock()
+
+	if b2AuthCache.AuthorizationToken != "" && time.Now().Before(b2AuthExp) {
+		return b2AuthCache, nil
+	}
+
+	tokens, err := fetchAuthTokens()
+	if err != nil {
+		return B2AuthTokens{}, err
+	}
+
+	b2AuthCache = tokens
+	b2AuthExp = time.Now().Add(b2AuthTTL)
+	return tokens, nil
+}
+
+// fetchAuthTokens performs the actual b2_authorize_account network call.
+func fetchAuthTokens() (B2AuthTokens, error) {
 	keyID, err := GetKeys("APP_KEY_ID")
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens]%w", err)
@@ -98,7 +133,6 @@ func AuthTokens() (B2AuthTokens, error) {
 	}
 
 	token := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", keyID, key))
-	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "https://api.backblazeb2.com/b2api/v2/b2_authorize_account", nil)
 	if err != nil {
@@ -106,7 +140,7 @@ func AuthTokens() (B2AuthTokens, error) {
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
 
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return B2AuthTokens{}, fmt.Errorf("[AuthTokens][client.Do]: %w", err)
 	}
@@ -167,8 +201,7 @@ func GetUploadUrl() (B2UploadTokens, error) {
 	req.Header.Set("Authorization", authData.AuthorizationToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := HTTPClient.Do(req)
 	if err != nil {
 		return B2UploadTokens{}, fmt.Errorf("[GetUploadUrl][client.Do]: %w", err)
 	}
@@ -241,8 +274,7 @@ func UploadToB2(data []byte, collection, filename, fileType string) (string, err
 	req.Header.Set("X-Bz-Content-Sha1", hash)
 	req.Header.Set("X-Bz-Info-Author", "rivendell")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := MediaClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("[UploadToB2][client.Do]: %w", err)
 	}

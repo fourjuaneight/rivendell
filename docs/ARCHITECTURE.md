@@ -233,6 +233,8 @@ The client gets back the fully enriched record in the response. Enrichment is **
 
 Because the request blocks on external I/O, all outbound HTTP calls use shared clients with timeouts (`helpers/http.go`): `HTTPClient` (30s) for metadata/API lookups and `MediaClient` (300s) for large transfers (media downloads, B2 uploads). A hung upstream host therefore fails the request on a deadline rather than stalling it indefinitely. The one exception is TMDB's `tmdbClient`, which keeps its own timeout plus gzip-EOF handling.
 
+Backblaze B2 authorization is cached in memory (`AuthTokens`, 12h TTL, mutex-guarded) rather than re-fetched per upload — an upload previously cost two extra B2 round-trips (authorize + get-upload-url) before the transfer itself.
+
 ## Cron jobs
 
 | Job ID | Schedule | What it does |
