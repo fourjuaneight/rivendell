@@ -120,6 +120,10 @@ func GetYTInfo(url string) (CleanYT, error) {
 		return CleanYT{}, fmt.Errorf("[GetYTInfo][json.Unmarshal]: %w", err)
 	}
 
+	if len(response.Items) == 0 {
+		return CleanYT{}, fmt.Errorf("[GetYTInfo]: no video found (%s)", urls.Link)
+	}
+
 	video := response.Items[0].Snippet
 
 	year := 0
