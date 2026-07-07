@@ -43,7 +43,7 @@ Pass as `Authorization: Bearer {token}` on all read/update requests.
 
 For `genre`, `definition`, `platform`, and `status` fields, pass the **name string** (e.g. `"rock"`, `"4k"`, `"ps5"`, `"in_progress"`). The server looks up the matching `meta` record and replaces it with the ID before saving. Passing a raw meta ID does **not** work — it fails to match any name and the create is rejected with an error.
 
-For `tags` fields on `articles`, `podcasts`, `videos`, `feeds`, `read_later`, and `watch_later`, pass an array of **tag name strings** (e.g. `["programming", "go"]`). The server resolves each to its `meta` record ID before saving. Passing raw IDs does **not** work — they fail to match any name and the required `tags` field is left empty, rejecting the create.
+For `tags` fields on `articles`, `podcasts`, `videos`, `feeds`, `read_later`, and `watch_later`, pass an array of **tag name strings** (e.g. `["programming", "go"]`). The server resolves each to its `meta` record ID before saving. Every name must match an existing `meta` record of type `tags` — if **any** name is unknown (including a raw meta ID, which matches no name), the create is rejected with an error listing the unmatched name(s). Create the tag via the `meta` collection first (see below).
 
 ## Collections
 

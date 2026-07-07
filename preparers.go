@@ -28,10 +28,29 @@ func resolveTagNames(app core.App, names []string) ([]string, error) {
 		return nil, fmt.Errorf("[resolveTagNames]: %w", err)
 	}
 
+	// Guard against silent partial resolution: if a caller sends tag names that
+	// don't exist in meta, they'd otherwise be dropped with no error and the
+	// record saved with fewer tags than requested. Compare matched names to the
+	// input and reject on any unmatched name.
+	matched := make(map[string]bool, len(records))
 	ids := make([]string, len(records))
 	for i, r := range records {
 		ids[i] = r.Id
+		matched[r.GetString("name")] = true
 	}
+
+	var unmatched []string
+	seen := make(map[string]bool, len(names))
+	for _, name := range names {
+		if !matched[name] && !seen[name] {
+			unmatched = append(unmatched, name)
+			seen[name] = true
+		}
+	}
+	if len(unmatched) > 0 {
+		return nil, fmt.Errorf("[resolveTagNames]: unknown tag(s): %s", strings.Join(unmatched, ", "))
+	}
+
 	return ids, nil
 }
 
