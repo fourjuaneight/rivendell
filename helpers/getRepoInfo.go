@@ -71,7 +71,6 @@ func GetRepoInfo(url string) (CleanRepo, error) {
 					name
 				}
 			}
-			}
 		}
 	`, owner, repo)
 
