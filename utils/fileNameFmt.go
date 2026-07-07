@@ -7,6 +7,13 @@ import (
 	"unicode/utf8"
 )
 
+// Compiled once at package init rather than per FileNameFmt call (runs once per
+// archived file).
+var (
+	dashRunRe    = regexp.MustCompile(`[-|\\]+`)
+	nonFileNmeRe = regexp.MustCompile(`[^a-zA-Z0-9_\- ]+`)
+)
+
 func FileNameFmt(name string) string {
 	cleanName := emojiRange.ReplaceAllString(name, "")
 	cleanName = strings.Trim(cleanName, " \t\n\r\v\f")
@@ -29,11 +36,11 @@ func FileNameFmt(name string) string {
 	cleanName = strings.ReplaceAll(cleanName, " — ", "-")
 	cleanName = strings.ReplaceAll(cleanName, " —— ", "-")
 	cleanName = strings.ReplaceAll(cleanName, "… ", "_")
-	cleanName = regexp.MustCompile(`[-|\\]+`).ReplaceAllString(cleanName, "-")
+	cleanName = dashRunRe.ReplaceAllString(cleanName, "-")
 	cleanName = strings.ReplaceAll(cleanName, " & ", "_and_")
 	cleanName = strings.ReplaceAll(cleanName, "&", "_and_")
 	cleanName = strings.ReplaceAll(cleanName, "?", "")
-	cleanName = regexp.MustCompile(`[^a-zA-Z0-9_\- ]+`).ReplaceAllString(cleanName, "")
+	cleanName = nonFileNmeRe.ReplaceAllString(cleanName, "")
 	cleanName = strings.ReplaceAll(cleanName, " ", "_")
 	cleanName = strings.Map(func(r rune) rune {
 		if unicode.Is(unicode.Mn, r) {

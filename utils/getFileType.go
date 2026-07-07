@@ -10,9 +10,13 @@ type FileTypes struct {
 	MIME string
 }
 
+// Compiled once at package init rather than per GetFileType call.
+var (
+	imgMatch = regexp.MustCompile(`(?i)^.*(png|jpg|jpeg|webp|gif|gifv)$`)
+	vidMatch = regexp.MustCompile(`(?i)^.*(mp4|mov)$`)
+)
+
 func GetFileType(typeStr string, url string) FileTypes {
-	imgMatch := regexp.MustCompile(`(?i)^.*(png|jpg|jpeg|webp|gif|gifv)$`)
-	vidMatch := regexp.MustCompile(`(?i)^.*(mp4|mov)$`)
 	isImg := imgMatch.MatchString(url)
 	isVid := vidMatch.MatchString(url)
 
