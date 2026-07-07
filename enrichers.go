@@ -215,6 +215,10 @@ func enrichMtg(app core.App, r *core.Record) (bool, error) {
 		return false, fmt.Errorf("[enrichMtg]: %w", err)
 	}
 
+	if len(cardSelection) == 0 {
+		return false, fmt.Errorf("[enrichMtg]: no card found for %s/%d", set, number)
+	}
+
 	var card helpers.MTGItem
 	for _, c := range cardSelection {
 		card = c
