@@ -126,6 +126,10 @@ func GetMedia(name string, url string) ([]byte, error) {
 
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("[GetMedia][resp]: %d - %s", resp.StatusCode, resp.Status)
+	}
+
 	media, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("[GetMedia][io.ReadAll]: %w", err)
