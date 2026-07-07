@@ -311,7 +311,10 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 			return CleanMedia{}, fmt.Errorf("[GetMediaInfo][json.Unmarshal]: %w", err)
 		}
 
-		year := movie.ReleaseDate[:4]
+		year := ""
+		if len(movie.ReleaseDate) >= 4 {
+			year = movie.ReleaseDate[:4]
+		}
 
 		coverURL := ""
 		if movie.PosterPath != "" {
@@ -334,7 +337,10 @@ func GetMediaInfo(url string) (CleanMedia, error) {
 		return CleanMedia{}, fmt.Errorf("[GetMediaInfo][json.Unmarshal]: %w", err)
 	}
 
-	year := tv.FirstAirDate[:4]
+	year := ""
+	if len(tv.FirstAirDate) >= 4 {
+		year = tv.FirstAirDate[:4]
+	}
 
 	coverURL := ""
 	if tv.PosterPath != "" {
