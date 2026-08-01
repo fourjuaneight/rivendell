@@ -7,4 +7,5 @@ serve-datasette.json
 chrome/
 *.log
 .claude
+CLAUDE.md
 .superpowers
