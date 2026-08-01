@@ -202,6 +202,8 @@ rivendell/
 │       └── render_meta_names.py  # Prettify tags cell display
 ├── Dockerfile           # Multi-stage Go build + runtime deps (chromium, ffmpeg, yt-dlp, single-file)
 ├── docker-compose.yml   # 4 services: tailscale, app, datasette, tailscale-datasette
+├── scripts/
+│   └── restore_collection.py  # Re-POST a B2 backup's missing records (dry-run by default)
 └── deploy.sh            # git pull + docker compose up --build
 ```
 
@@ -228,6 +230,11 @@ e.App.Save(record) — persist enriched fields
 Response returned to client
 ```
 
+Two other hooks are wired in `main.go` alongside it:
+
+- **`OnBootstrap`** enforces the log settings on every start: `Logs.MaxDays = 90` and `Logs.LogAuthId = true`. PocketBase defaults to 5 days with no auth ID, which is shorter than the gap between losing data and noticing, and leaves entries unattributable. It lives in `main.go` rather than a migration because `migrations/` is gitignored and wouldn't survive a fresh clone.
+- **`OnRecordDeleteRequest`** (all collections) logs `collection`, record label, `record_id`, `auth_id`, and `ip` at `Warn` before `e.Next()`. Nothing in this app deletes records, so every delete is an external superuser action; without this an incident leaves no attributable trace once the request log ages out. Logged *before* `e.Next()` so an attempt is recorded even if the delete then fails.
+
 The client gets back the fully enriched record in the response. Enrichment is **synchronous** — the request blocks until all API calls and uploads complete. This is acceptable for a single-user personal system.
 
 Because the request blocks on external I/O, all outbound HTTP calls use shared clients with timeouts (`helpers/http.go`): `HTTPClient` (30s) for metadata/API lookups and `MediaClient` (300s) for large transfers (media downloads, B2 uploads). A hung upstream host therefore fails the request on a deadline rather than stalling it indefinitely. The one exception is TMDB's `tmdbClient`, which keeps its own timeout plus gzip-EOF handling.
@@ -239,7 +246,7 @@ Backblaze B2 authorization is cached in memory (`AuthTokens`, 12h TTL, mutex-gua
 | Job ID | Schedule | What it does |
 |--------|----------|--------------|
 | `link_check` | Daily 3am | HEAD-check every non-dead URL in articles/podcasts/videos. Flip `dead=true` on failures. Worker pool of 5, one retry on network error. |
-| `backup` | Mon/Wed/Fri 4am | Export every non-system, non-auth collection to `Backups/<collection>/<date>.json` on B2. Strips PB meta fields, resolves relation IDs to meta names. Sequential; one collection's failure is logged and skipped. |
+| `backup` | Daily 4am | Export every non-system, non-auth collection to `Backups/<collection>/<date>.json` on B2. Strips PB meta fields, resolves relation IDs to meta names. Sequential; one collection's failure is logged and skipped. |
 
 See [CRON.md](CRON.md) for the full per-job detail and the convention for adding new jobs.
 

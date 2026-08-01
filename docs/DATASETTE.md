@@ -28,7 +28,10 @@ There is no auth — access is gated by Tailscale (tailnet-only), same as the ap
 PocketBase ──writes──> pb_data/data.db (+ -wal/-shm, WAL mode, live, locked)
                                │  bind-mounted READ-ONLY at /data/pb_data
                                ▼
-sync.sh: cp data.db (+ -wal/-shm) ─> /tmp/pbsnap ─VACUUM INTO─> /data/rivendell.db
+sync.sh: cp data.db (+ -wal/-shm) ─> /tmp/pbsnap ─VACUUM INTO─> /tmp/pbsnap/raw.db
+                               │  drop system + auth tables, VACUUM INTO again
+                               ▼
+                        /data/rivendell.db
                                │  snapshot in the datasette-data volume
                                ▼
 datasette serve --immutable /data/rivendell.db        (no base_url — root)
@@ -39,6 +42,7 @@ tailscale-datasette node  :443 ──/──>  rivendell-datasette.<tailnet>.ts.
 
 - **Read-only source.** `pb_data` is a read-only bind mount, so the container physically cannot write your live data.
 - **Why copy-then-`VACUUM INTO`, not `sqlite3 .backup`.** PocketBase keeps the live DB open with locks (WAL mode). Pointing `sqlite3` directly at it over the read-only mount fails with `Error: database is locked`, leaving an empty `rivendell.db` and a 502. So `sync.sh` instead `cp`s the file-set (`data.db` + `-wal`/`-shm`) to a writable temp and runs `VACUUM INTO` on that *private copy*. That sidesteps the lock entirely and means sqlite never even opens the live DB. (sqlite replays the copied `-wal` to produce a consistent snapshot.)
+- **The snapshot is stripped before it is served.** A raw copy of `data.db` carries secrets: `_params` holds the app settings — B2/S3 credentials in the clear unless `PB_ENCRYPTION_KEY` is set — while `_superusers` and `users` hold password hashes and token keys, and `_collections` holds any OAuth2 client secrets. Datasette is reachable by anyone on the tailnet, so `sync.sh` drops every underscore-prefixed (system) table plus `users`, matching the same policy `backup/backup.go` applies to B2 backups (`collection.System || collection.IsAuth()`). It then runs a **second** `VACUUM INTO`: `DROP TABLE` only moves pages to the freelist, so without it the dropped rows are still readable as raw bytes in the served file. A final check refuses to publish a snapshot in which `_params`, `_superusers`, or `users` survived.
 - **Immutable + restart loop.** Datasette serves `--immutable` (fast; assumes the file never changes) and loads DBs only at startup, so the entrypoint **resyncs then restarts** Datasette every 5 minutes to pick up new data — it never overwrites a file Datasette has open. A guard skips serving if no snapshot exists yet (a failed sync can't leave it crash-looping on `--immutable <missing-file>`).
 - **Routing.** A second Tailscale container (`tailscale-datasette`, hostname `rivendell-datasette`) proxies `/` on `:443` → `datasette:8001` via `serve-datasette.json`. Datasette runs with **no `base_url`** (it owns the whole host), so every link — assets, facets, sort, JS — stays on this host. (Earlier a `/analytics/` path prefix + `base_url` on the main host broke facet links: Tailscale strips the prefix but Datasette's request-path links don't re-add it → 404 into PocketBase.) Each Tailscale node has its own auth key (`TS_AUTHKEY` for the app node, `TS_AUTHKEY_DATASETTE` for this one); single-use keys are fine since `TS_AUTH_ONCE` + the state volume persist a node after first auth.
 

@@ -52,7 +52,7 @@ Checks the `url` field on every non-`dead` record in `articles`, `podcasts`, and
 - **Logging:** job start, per-collection query failure, per-record save failure, per-record dead-flip, per-collection summary (`checked`/`flipped` counts) — see `linkcheck.CheckCollection`.
 - **Known limitation:** the concurrency cap bounds *total* in-flight requests, not *per-host* requests — if several records share a host, up to 5 can hit it at once. Mitigated by the daily schedule rather than per-host throttling; acceptable for a personal-scale collection.
 
-### `backup` — Mon/Wed/Fri at 4am (`0 4 * * 1,3,5`)
+### `backup` — daily at 4am (`0 4 * * *`)
 
 Exports every non-system, non-auth collection to a pretty-printed JSON file on Backblaze B2 at `Backups/<collection>/<YYYY-MM-DD>.json` — one dated file per collection per run, never overwritten. Implementation: `backup/backup.go`.
 
@@ -62,7 +62,8 @@ Exports every non-system, non-auth collection to a pretty-printed JSON file on B
 - **Concurrency:** sequential across collections (~16, each one fetch + marshal + one B2 upload, off-peak).
 - **Failure isolation:** a `buildMetaNames` or `FindAllCollections` failure aborts the whole run (every collection needs the meta map); a single collection's failure is logged and skipped (`continue`), never aborting the rest.
 - **Logging:** `backup started`, per-collection `collection backed up` (`record_count`), per-collection failure, `backup done` (`backed_up`/`failed`) — see `backup.BackupAll`.
-- **Restore:** re-POST the JSON through the create API — relations are stored as names precisely so a restore matches the API's input format. (Restore is manual; no automated tooling yet.)
+- **Restore:** `scripts/restore_collection.py <collection> --date <YYYY-MM-DD>` — relations are stored as names precisely so a restore matches the create API's input format. It diffs the backup against what's live, reports what's missing, and only writes with `--apply`. After each create it PATCHes back any non-relation field the preparers or enrichers overwrote (`prepareGame` forces `favorite = false`; `enrichGames` replaces `year`/`cover` from IGDB). Matching is by a natural key (`title` for most collections), so re-running is safe.
+- **Why daily, not Mon/Wed/Fri:** the schedule used to be `0 4 * * 1,3,5`. On 2026-07-19 a superuser bulk-deleted 39 `games` records; 3 of them had been created earlier that same day and so appeared in no backup at all, and were lost permanently. A ≤24h window bounds that.
 
 ## Adding a new cron job
 
