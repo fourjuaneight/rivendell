@@ -9,3 +9,6 @@ chrome/
 .claude
 CLAUDE.md
 .superpowers
+scripts/*.js
+scripts/*.mjs
+scripts/*.ts

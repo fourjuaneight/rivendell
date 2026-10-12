@@ -120,13 +120,19 @@ services:
       datasette:
         condition: service_healthy
 
+# Data lives on the Mac's Turko drive. If the folder is missing (drive not mounted), the
+# volume fails to mount and the container won't start, instead of starting on an empty folder.
 volumes:
   pb_data:
+    driver_opts: {type: none, o: bind, device: /Volumes/Turko/Docker/rivendell/pocketbase}
   tailscale-state:
+    driver_opts: {type: none, o: bind, device: /Volumes/Turko/Docker/rivendell/tailscale}
   tailscale-sock:
   tailscale-datasette-state:
+    driver_opts: {type: none, o: bind, device: /Volumes/Turko/Docker/rivendell/tailscale-datasette}
   tailscale-datasette-sock:
   datasette-data:
+    driver_opts: {type: none, o: bind, device: /Volumes/Turko/Docker/rivendell/datasette}
 
 networks:
   internal:
