@@ -241,10 +241,10 @@ func GetPodcast(name string, url string, creator string, year int) ([]byte, erro
 // GetSingleFile captures a full-page HTML snapshot via single-file-cli and returns the bytes.
 // Requires chromium and single-file-cli installed in the runtime environment.
 //
-// Note: single-file hardcodes "--single-process" when launching chromium, which crashes the
-// renderer on chromium >= ~131 so the remote-debugging port never opens. The Dockerfile strips
-// that flag from single-file's browser.js. We pass only "--no-sandbox" (the container runs as
-// root) and let single-file manage headless mode itself.
+// Note: "--single-process" crashes the renderer on chromium >= ~131, so the remote-debugging
+// port never opens. single-file-cli (2.18.1) only adds it on Windows or with
+// --browser-single-process, so leave that option off. We pass only "--no-sandbox" (the
+// container runs as root) and let single-file manage headless mode itself.
 func GetSingleFile(urlString string) ([]byte, error) {
 	cmd := exec.Command("single-file",
 		"--browser-executable-path=/usr/bin/chromium-browser",
